@@ -1,0 +1,12 @@
+node_modules/
+
+# Secrets — never commit
+.env
+
+# Saved auth session (contains a live token)
+.auth/
+
+# Playwright output
+test-results/
+playwright-report/
+blob-report/
