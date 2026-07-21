@@ -19,6 +19,16 @@ export interface ProfileRow {
   calorie_goal_history: unknown
 }
 
+/** The diary_entries columns the API specs assert on. */
+export interface DiaryEntryRow {
+  id: string
+  entry_date: string
+  meal: string
+  food_name: string
+  servings: number
+  nutrients: { kcal?: number }
+}
+
 /**
  * Thin Supabase REST (PostgREST) client authenticated as the E2E user.
  * Used to seed prerequisite rows and to clean up what tests create — the
@@ -79,13 +89,9 @@ export class SupabaseApi {
     return row
   }
 
-  /** GET diary entries, optionally filtered — also used by the API specs. */
-  async getDiaryEntries(filter: Record<string, string>): Promise<unknown[]> {
-    const res = await this.ctx.get('/rest/v1/diary_entries', { params: filter })
-    if (!res.ok()) {
-      throw new Error(`getDiaryEntries failed: ${res.status()} ${await res.text()}`)
-    }
-    return (await res.json()) as unknown[]
+  /** GET diary entries with PostgREST filters — also used by the API specs. */
+  async getDiaryEntries(filter: Record<string, string>): Promise<DiaryEntryRow[]> {
+    return this.getRows<DiaryEntryRow>('/rest/v1/diary_entries', filter)
   }
 
   async deleteDiaryEntriesByFoodName(foodName: string): Promise<void> {

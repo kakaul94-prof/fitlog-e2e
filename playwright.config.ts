@@ -14,7 +14,9 @@ export default defineConfig({
   testDir: './tests',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  // The target is a remote deployment: one local retry absorbs cold-start
+  // stalls (surfaced as "flaky" in the report, not hidden); CI gets two.
+  retries: process.env.CI ? 2 : 1,
   reporter: process.env.CI
     ? [['list'], ['github'], ['html', { open: 'never' }]]
     : [['list'], ['html', { open: 'never' }]],

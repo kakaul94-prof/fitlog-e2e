@@ -53,7 +53,7 @@ gitignored `.env`; in CI they are repository secrets. No secrets are ever commit
 | Body measurements → Progress history | `tests/measurements.spec.ts` | ✅ |
 | Streak indicator after logging today | with diary specs | ✅ |
 | Manual calorie goal → diary target | `tests/goals.spec.ts` | ✅ |
-| Supabase REST API checks | `tests/api/diary.api.spec.ts` | planned |
+| API: UI-insert → REST verify, RLS negative | `tests/api/diary.api.spec.ts` | ✅ |
 
 ## Design decisions
 
