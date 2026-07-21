@@ -11,6 +11,14 @@ export interface SeedNutrients {
   fat?: number
 }
 
+/** The profile columns the goals spec captures and restores. */
+export interface ProfileRow {
+  id: string
+  calorie_goal_mode: string | null
+  manual_calorie_goal: number | null
+  calorie_goal_history: unknown
+}
+
 /**
  * Thin Supabase REST (PostgREST) client authenticated as the E2E user.
  * Used to seed prerequisite rows and to clean up what tests create — the
@@ -84,6 +92,58 @@ export class SupabaseApi {
     await this.delete('/rest/v1/diary_entries', { food_name: `eq.${foodName}` })
   }
 
+  async deleteExerciseEntriesByName(name: string): Promise<void> {
+    await this.delete('/rest/v1/exercise_entries', { name: `eq.${name}` })
+  }
+
+  async deleteMeasurements(type: string, value: number): Promise<void> {
+    await this.delete('/rest/v1/measurements', {
+      type: `eq.${type}`,
+      value: `eq.${value}`,
+    })
+  }
+
+  /** The signed-in user's profile row (RLS returns exactly one). */
+  async getProfile(): Promise<ProfileRow> {
+    const rows = await this.getRows<ProfileRow>('/rest/v1/profiles', {})
+    const row = rows[0]
+    if (!row) throw new Error('getProfile: no profile row visible')
+    return row
+  }
+
+  async updateProfile(id: string, patch: Partial<ProfileRow>): Promise<void> {
+    const res = await this.ctx.patch('/rest/v1/profiles', {
+      params: { id: `eq.${id}` },
+      data: patch,
+    })
+    if (!res.ok()) {
+      throw new Error(`updateProfile failed: ${res.status()} ${await res.text()}`)
+    }
+  }
+
+  /**
+   * Remove a custom exercise and every workout that ever logged it (sets and
+   * workout_exercises cascade from workouts). Tests use per-test custom
+   * exercises, so those workouts contain nothing but test data.
+   */
+  async deleteStrengthDataForExercise(customExerciseName: string): Promise<void> {
+    const customs = await this.getRows<{ id: string }>('/rest/v1/custom_exercises', {
+      name: `eq.${customExerciseName}`,
+      select: 'id',
+    })
+    for (const custom of customs) {
+      const sets = await this.getRows<{ workout_id: string }>(
+        '/rest/v1/workout_sets',
+        { exercise_key: `eq.custom:${custom.id}`, select: 'workout_id' },
+      )
+      const workoutIds = [...new Set(sets.map((s) => s.workout_id))]
+      if (workoutIds.length > 0) {
+        await this.delete('/rest/v1/workouts', { id: `in.(${workoutIds.join(',')})` })
+      }
+      await this.delete('/rest/v1/custom_exercises', { id: `eq.${custom.id}` })
+    }
+  }
+
   /**
    * Delete library foods by exact name. Recipes must go before their
    * ingredient foods — recipe_ingredients restricts ingredient deletion until
@@ -114,6 +174,23 @@ export class SupabaseApi {
     await this.delete('/rest/v1/foods', { source: 'eq.recipe', name: pattern })
     await this.delete('/rest/v1/foods', { source: 'eq.recipe', name: 'eq.New recipe' })
     await this.delete('/rest/v1/foods', { name: pattern })
+    await this.delete('/rest/v1/exercise_entries', { name: pattern })
+    // Strength: E2E custom exercises drag their workouts along.
+    const customs = await this.getRows<{ name: string }>('/rest/v1/custom_exercises', {
+      name: pattern,
+      select: 'name',
+    })
+    for (const c of customs) {
+      await this.deleteStrengthDataForExercise(c.name)
+    }
+  }
+
+  private async getRows<T>(path: string, params: Record<string, string>): Promise<T[]> {
+    const res = await this.ctx.get(path, { params })
+    if (!res.ok()) {
+      throw new Error(`GET ${path} failed: ${res.status()} ${await res.text()}`)
+    }
+    return (await res.json()) as T[]
   }
 
   private async delete(path: string, params: Record<string, string>): Promise<void> {

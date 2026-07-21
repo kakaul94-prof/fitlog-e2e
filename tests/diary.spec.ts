@@ -57,6 +57,8 @@ test.describe('food diary', () => {
       const entry = diaryPage.entryRow(entryName)
       await expect(entry).toBeVisible()
       await expect(entry).toContainText(`${kcal} calories`)
+      // Food logged today → the 🔥 streak pill shows in the header.
+      await expect(diaryPage.streakBadge).toBeVisible()
     } finally {
       await api.bestEffort(() => api.deleteDiaryEntriesByFoodName(entryName))
     }

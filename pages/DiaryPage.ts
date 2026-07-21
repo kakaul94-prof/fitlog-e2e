@@ -13,7 +13,9 @@ export class DiaryPage extends BasePage {
   readonly nextDayButton = this.page.getByRole('button', { name: 'Next day' })
 
   async expectLoaded(): Promise<void> {
-    await expect(this.heading).toBeVisible()
+    // First paint after a cold navigation (lazy route + session restore) can
+    // exceed the default expect timeout on slower engines.
+    await expect(this.heading).toBeVisible({ timeout: 20_000 })
   }
 
   /** Open the diary at a specific date (?date=YYYY-MM-DD). */
@@ -48,4 +50,26 @@ export class DiaryPage extends BasePage {
   async openAddFood(meal: MealLabel): Promise<void> {
     await this.mealCard(meal).getByRole('button', { name: 'Add food' }).click()
   }
+
+  /** A cardio row in the Exercise card — "{name} {min} min · {kcal} calories". */
+  exerciseRow(name: string): Locator {
+    return this.page.getByRole('button', {
+      name: new RegExp(`^${escapeRegExp(name)} \\d+ min`),
+    })
+  }
+
+  async openAddExercise(): Promise<void> {
+    await this.page.getByRole('button', { name: 'Add exercise', exact: true }).click()
+  }
+
+  /** The hero card's "{kcal} goal" line (the day's calorie target). */
+  calorieGoal(kcal: number): Locator {
+    return this.page.getByText(`${kcal} goal`)
+  }
+
+  /**
+   * The 🔥 streak pill in the header. It has no accessible handle (README →
+   * future work) — it's the only digits-only text in the page header.
+   */
+  readonly streakBadge = this.page.locator('header').getByText(/^\d+$/)
 }

@@ -48,11 +48,11 @@ gitignored `.env`; in CI they are repository secrets. No secrets are ever commit
 | Food diary logging + day totals (incl. quick add) | `tests/diary.spec.ts` | ✅ |
 | Food search, manual food + USDA import, serving rescale | `tests/food-search.spec.ts` | ✅ |
 | Recipes (ingredients → per-serving nutrition → log to diary) | `tests/recipe.spec.ts` | ✅ |
-| Cardio + eat-back calories | `tests/cardio.spec.ts` | planned |
-| Strength (sets, est. 1RM, last-time prefill) | `tests/strength.spec.ts` | planned |
-| Body measurements → Progress | `tests/measurements.spec.ts` | planned |
-| Streak indicator | with diary specs | planned |
-| Calorie-goal settings | `tests/goals.spec.ts` | planned |
+| Cardio (logged burn on the diary) | `tests/cardio.spec.ts` | ✅ |
+| Strength (sets, est. 1RM, last-time prefill) | `tests/strength.spec.ts` | ✅ |
+| Body measurements → Progress history | `tests/measurements.spec.ts` | ✅ |
+| Streak indicator after logging today | with diary specs | ✅ |
+| Manual calorie goal → diary target | `tests/goals.spec.ts` | ✅ |
 | Supabase REST API checks | `tests/api/diary.api.spec.ts` | planned |
 
 ## Design decisions

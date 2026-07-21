@@ -5,6 +5,11 @@ import { FoodPickerPage } from '../pages/FoodPickerPage'
 import { FoodFormPage } from '../pages/FoodFormPage'
 import { LibraryPage } from '../pages/LibraryPage'
 import { RecipeEditPage } from '../pages/RecipeEditPage'
+import { ExerciseAddPage } from '../pages/ExerciseAddPage'
+import { StrengthPage } from '../pages/StrengthPage'
+import { WorkoutPage } from '../pages/WorkoutPage'
+import { ProgressPage } from '../pages/ProgressPage'
+import { ProfilePage } from '../pages/ProfilePage'
 import { BottomNav } from '../pages/components/BottomNav'
 import { SupabaseApi } from '../utils/supabase-api'
 
@@ -15,6 +20,11 @@ interface Fixtures {
   foodFormPage: FoodFormPage
   libraryPage: LibraryPage
   recipeEditPage: RecipeEditPage
+  exerciseAddPage: ExerciseAddPage
+  strengthPage: StrengthPage
+  workoutPage: WorkoutPage
+  progressPage: ProgressPage
+  profilePage: ProfilePage
   bottomNav: BottomNav
   api: SupabaseApi
 }
@@ -44,6 +54,21 @@ export const test = base.extend<Fixtures>({
   },
   recipeEditPage: async ({ page }, use) => {
     await use(new RecipeEditPage(page))
+  },
+  exerciseAddPage: async ({ page }, use) => {
+    await use(new ExerciseAddPage(page))
+  },
+  strengthPage: async ({ page }, use) => {
+    await use(new StrengthPage(page))
+  },
+  workoutPage: async ({ page }, use) => {
+    await use(new WorkoutPage(page))
+  },
+  progressPage: async ({ page }, use) => {
+    await use(new ProgressPage(page))
+  },
+  profilePage: async ({ page }, use) => {
+    await use(new ProfilePage(page))
   },
   bottomNav: async ({ page }, use) => {
     await use(new BottomNav(page))
