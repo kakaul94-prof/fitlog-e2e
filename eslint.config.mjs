@@ -22,5 +22,10 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    // The teardown project sweeps leftover data — it asserts nothing by design.
+    files: ['tests/cleanup.teardown.ts'],
+    rules: { 'playwright/expect-expect': 'off' },
+  },
   prettier,
 )

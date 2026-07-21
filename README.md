@@ -45,9 +45,9 @@ gitignored `.env`; in CI they are repository secrets. No secrets are ever commit
 |---|---|---|
 | Authentication (positive + negative) | `tests/auth.spec.ts` | ✅ |
 | Navigation smoke (all tabs, no runtime errors) | `tests/navigation.spec.ts` | ✅ |
-| Food diary logging + day totals | `tests/diary.spec.ts` | planned |
-| Food search / USDA import + serving rescale | `tests/food-search.spec.ts` | planned |
-| Recipes (per-serving nutrition, log to diary) | `tests/recipe.spec.ts` | planned |
+| Food diary logging + day totals (incl. quick add) | `tests/diary.spec.ts` | ✅ |
+| Food search, manual food + USDA import, serving rescale | `tests/food-search.spec.ts` | ✅ |
+| Recipes (ingredients → per-serving nutrition → log to diary) | `tests/recipe.spec.ts` | ✅ |
 | Cardio + eat-back calories | `tests/cardio.spec.ts` | planned |
 | Strength (sets, est. 1RM, last-time prefill) | `tests/strength.spec.ts` | planned |
 | Body measurements → Progress | `tests/measurements.spec.ts` | planned |
@@ -62,9 +62,11 @@ gitignored `.env`; in CI they are repository secrets. No secrets are ever commit
   environment via env var.
 - **Dedicated test account** — Supabase Row-Level Security is owner-only on every
   table, so E2E data is fully isolated from real accounts.
-- **Idempotent, self-cleaning data** — specs that write use per-run unique values and
-  delete what they create (via the app UI or the Supabase REST API with the test
-  user's own token), so repeated CI runs stay green.
+- **Idempotent, self-cleaning data** — specs that write use per-run unique values
+  (and unique past dates for day-total assertions, so parallel projects sharing the
+  account never collide) and delete what they create via the Supabase REST API with
+  the test user's own token. A teardown project sweeps anything a crashed run left
+  behind.
 - **`storageState` auth** — one real-UI login per run instead of one per test:
   faster, and auth flakiness is confined to a single setup project.
 

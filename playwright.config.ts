@@ -19,7 +19,8 @@ export default defineConfig({
     ? [['list'], ['github'], ['html', { open: 'never' }]]
     : [['list'], ['html', { open: 'never' }]],
   // The app under test is a remote deployment backed by Supabase — allow a
-  // little more than the 5s default for data-backed UI to settle.
+  // little more than the defaults for data-backed UI and multi-step flows.
+  timeout: 60_000,
   expect: { timeout: 10_000 },
   use: {
     baseURL,
@@ -28,7 +29,8 @@ export default defineConfig({
     video: 'retain-on-failure',
   },
   projects: [
-    { name: 'setup', testMatch: /auth\.setup\.ts/ },
+    { name: 'setup', testMatch: /auth\.setup\.ts/, teardown: 'cleanup' },
+    { name: 'cleanup', testMatch: /cleanup\.teardown\.ts/ },
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'], storageState: STORAGE_STATE },
