@@ -41,10 +41,13 @@ export class DiaryPage extends BasePage {
     })
   }
 
-  /** The hero card's "− {kcal} food" line (day's consumed total). */
+  /**
+   * The day's consumed-calories total in the hero card. With a calorie goal
+   * configured it reads "− {kcal} food" (U+2212 or hyphen); on a profile
+   * without a goal the hero falls back to "{kcal} calories eaten".
+   */
   foodTotal(kcal: number): Locator {
-    // The app renders a U+2212 minus sign; accept a plain hyphen too.
-    return this.page.getByText(new RegExp(`[−-] ${kcal} food`))
+    return this.page.getByText(new RegExp(`[−-] ${kcal} food|${kcal} calories eaten`))
   }
 
   async openAddFood(meal: MealLabel): Promise<void> {
