@@ -76,6 +76,14 @@ export class DiaryPage extends BasePage {
    */
   readonly streakBadge = this.page.locator('header').getByText(/^\d+$/)
 
+  /** The offline/syncing status pill (renders when offline or writes queue). */
+  readonly offlinePill = this.page.getByText(/^(Offline|Syncing \d+…)/)
+
+  /** Resolve once the PWA service worker is active (offline tests). */
+  async waitForServiceWorker(): Promise<void> {
+    await this.page.evaluate(() => navigator.serviceWorker.ready.then(() => undefined))
+  }
+
   /** The current streak count as a number (badge must be visible). */
   async streakCount(): Promise<number> {
     await expect(this.streakBadge).toBeVisible()
@@ -138,6 +146,12 @@ export class DiaryPage extends BasePage {
     await this.page.getByRole('button', { name: 'Move to meal' }).click()
     // exact — the diary's meal-card headers are named "{Meal} {kcal} calories".
     await this.page.getByRole('button', { name: meal, exact: true }).click()
+  }
+
+  /** In select mode: delete the selected entries (accepts the confirm dialog). */
+  async deleteSelection(): Promise<void> {
+    this.page.once('dialog', (dialog) => void dialog.accept())
+    await this.page.getByRole('button', { name: 'Delete', exact: true }).click()
   }
 
   /** In select mode: copy the selected entries to a date (the app jumps there). */

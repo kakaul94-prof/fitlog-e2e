@@ -42,6 +42,49 @@ test.describe('strength', () => {
     }
   })
 
+  test('save & exit keeps edits; discard reverts to the on-open snapshot', async ({
+    page,
+    strengthPage,
+    workoutPage,
+    api,
+  }) => {
+    const exerciseName = uniqueName('Lunge')
+
+    try {
+      await strengthPage.goto()
+      await strengthPage.startEmptyWorkout()
+      await workoutPage.addCustomExercise(exerciseName)
+      await workoutPage.logSet(1, 100, 5)
+      // The e1RM badge derives from SERVER state — once visible, the set has
+      // landed and the exit guard sees the workout as dirty.
+      await expect(workoutPage.e1rm(117)).toBeVisible()
+      const workoutUrl = page.url()
+
+      // Backing out of a dirty in-progress workout prompts; Save & exit keeps
+      // the live-saved sets.
+      await workoutPage.leaveAndSave()
+      await expect(strengthPage.heading).toBeVisible()
+      await page.goto(workoutUrl)
+      await expect(workoutPage.exerciseTitle(exerciseName)).toBeVisible()
+      await expect(workoutPage.weightInput(1)).toHaveValue('100')
+
+      // Edit this session, then discard: the set reverts to the open snapshot.
+      await workoutPage.logSet(1, 120, 8)
+      await expect(workoutPage.e1rm(152)).toBeVisible() // 120 × (1 + 8/30)
+      await workoutPage.leaveAndDiscard()
+      await expect(strengthPage.heading).toBeVisible()
+      await page.goto(workoutUrl)
+      await expect(workoutPage.exerciseTitle(exerciseName)).toBeVisible()
+      await expect(workoutPage.weightInput(1)).toHaveValue('100')
+      await expect(workoutPage.repsInput(1)).toHaveValue('5')
+
+      await workoutPage.markDoneButton.click()
+      await expect(strengthPage.heading).toBeVisible()
+    } finally {
+      await api.bestEffort(() => api.deleteStrengthDataForExercise(exerciseName))
+    }
+  })
+
   test('links two exercises into a superset with shared timing', async ({
     strengthPage,
     workoutPage,

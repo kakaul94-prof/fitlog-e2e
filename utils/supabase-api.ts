@@ -264,6 +264,78 @@ export class SupabaseApi {
     return rows[0]?.nutrients.kcal ?? null
   }
 
+  /** Create a custom exercise directly; returns its app-side key. */
+  async createCustomExercise(name: string): Promise<string> {
+    const res = await this.ctx.post('/rest/v1/custom_exercises', {
+      headers: { Prefer: 'return=representation' },
+      data: { name, type: 'weighted' },
+    })
+    if (!res.ok()) {
+      throw new Error(`createCustomExercise failed: ${res.status()} ${await res.text()}`)
+    }
+    const [row] = (await res.json()) as Array<{ id: string }>
+    if (!row) throw new Error('createCustomExercise: empty response')
+    return `custom:${row.id}`
+  }
+
+  /**
+   * Seed a completed workout with one exercise and its sets — history for
+   * progression/records tests without driving the UI. Call in chronological
+   * order: the app treats the most recently INSERTED sets as the last session.
+   */
+  async createCompletedWorkout(input: {
+    exerciseKey: string
+    exerciseName: string
+    date: string
+    sets: Array<{ weightLb: number; reps: number }>
+  }): Promise<void> {
+    const workoutRes = await this.ctx.post('/rest/v1/workouts', {
+      headers: { Prefer: 'return=representation' },
+      data: { workout_date: input.date, name: 'Workout', completed: true },
+    })
+    if (!workoutRes.ok()) {
+      throw new Error(
+        `createCompletedWorkout(workout) failed: ${workoutRes.status()} ${await workoutRes.text()}`,
+      )
+    }
+    const [workout] = (await workoutRes.json()) as Array<{ id: string }>
+    if (!workout) throw new Error('createCompletedWorkout: empty workout response')
+
+    const weRes = await this.ctx.post('/rest/v1/workout_exercises', {
+      headers: { Prefer: 'return=representation' },
+      data: {
+        workout_id: workout.id,
+        exercise_key: input.exerciseKey,
+        exercise_name: input.exerciseName,
+        position: 0,
+      },
+    })
+    if (!weRes.ok()) {
+      throw new Error(
+        `createCompletedWorkout(exercise) failed: ${weRes.status()} ${await weRes.text()}`,
+      )
+    }
+    const [we] = (await weRes.json()) as Array<{ id: string }>
+    if (!we) throw new Error('createCompletedWorkout: empty exercise response')
+
+    const setsRes = await this.ctx.post('/rest/v1/workout_sets', {
+      data: input.sets.map((s, i) => ({
+        workout_id: workout.id,
+        workout_exercise_id: we.id,
+        exercise_key: input.exerciseKey,
+        exercise_name: input.exerciseName,
+        set_number: i + 1,
+        reps: s.reps,
+        weight_lb: s.weightLb,
+      })),
+    })
+    if (!setsRes.ok()) {
+      throw new Error(
+        `createCompletedWorkout(sets) failed: ${setsRes.status()} ${await setsRes.text()}`,
+      )
+    }
+  }
+
   /** The app-side key (custom:<uuid>) for a custom exercise, by name. */
   async getCustomExerciseKey(name: string): Promise<string> {
     const rows = await this.getRows<{ id: string }>('/rest/v1/custom_exercises', {

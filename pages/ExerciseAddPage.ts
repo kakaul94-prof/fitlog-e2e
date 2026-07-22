@@ -38,6 +38,16 @@ export class ExerciseAddPage extends BasePage {
     await this.saveButton.click()
   }
 
+  // --- edit mode (/exercise/edit/:id) ---
+  readonly editHeading = this.page.getByRole('heading', { name: 'Edit exercise', level: 1 })
+  readonly saveChangesButton = this.page.getByRole('button', { name: 'Save changes' })
+
+  /** Wait for the edit form's async prefill before touching any field. */
+  async expectEditLoaded(minutes: number): Promise<void> {
+    await expect(this.editHeading).toBeVisible()
+    await expect(this.durationInput).toHaveValue(String(minutes))
+  }
+
   /** Log a cardio session under a free-typed name with exact calories. */
   async logCardio(name: string, minutes: number, calories: number): Promise<void> {
     await expect(this.heading).toBeVisible()

@@ -42,6 +42,62 @@ test.describe('diary move and copy', () => {
     }
   })
 
+  test('previous/next day navigation swaps the visible entries', async ({
+    diaryPage,
+    api,
+  }) => {
+    const dayOneFood = uniqueName('Oats')
+    const dayTwoFood = uniqueName('Soup')
+    const dayOne = uniquePastDate()
+    const dayTwo = addDaysISO(dayOne, 1)
+
+    await api.createDiaryEntry({ date: dayOne, meal: 'breakfast', name: dayOneFood, kcal: 100 })
+    await api.createDiaryEntry({ date: dayTwo, meal: 'breakfast', name: dayTwoFood, kcal: 200 })
+    try {
+      await diaryPage.gotoDate(dayOne)
+      await expect(diaryPage.entryRow(dayOneFood)).toBeVisible()
+
+      await diaryPage.nextDayButton.click()
+      await expect(diaryPage.entryRow(dayTwoFood)).toBeVisible()
+      await expect(diaryPage.entryRow(dayOneFood)).toBeHidden()
+
+      await diaryPage.previousDayButton.click()
+      await expect(diaryPage.entryRow(dayOneFood)).toBeVisible()
+      await expect(diaryPage.entryRow(dayTwoFood)).toBeHidden()
+    } finally {
+      await api.bestEffort(async () => {
+        await api.deleteDiaryEntriesByFoodName(dayOneFood)
+        await api.deleteDiaryEntriesByFoodName(dayTwoFood)
+      })
+    }
+  })
+
+  test('bulk-deletes selected entries', async ({ diaryPage, api }) => {
+    const first = uniqueName('Bar')
+    const second = uniqueName('Shake')
+    const date = uniquePastDate()
+
+    await api.createDiaryEntry({ date, meal: 'breakfast', name: first, kcal: 150 })
+    await api.createDiaryEntry({ date, meal: 'breakfast', name: second, kcal: 250 })
+    try {
+      await diaryPage.gotoDate(date)
+      await diaryPage.longPressEntry(first)
+      await diaryPage.enterSelectMode()
+      await diaryPage.entryRow(second).click()
+      await expect(diaryPage.selectionCount(2)).toBeVisible()
+
+      await diaryPage.deleteSelection()
+      await expect(diaryPage.entryRow(first)).toBeHidden()
+      await expect(diaryPage.entryRow(second)).toBeHidden()
+      await expect(diaryPage.mealHeader('Breakfast')).toContainText('0 calories')
+    } finally {
+      await api.bestEffort(async () => {
+        await api.deleteDiaryEntriesByFoodName(first)
+        await api.deleteDiaryEntriesByFoodName(second)
+      })
+    }
+  })
+
   test('copies the previous day\'s meal in from the picker', async ({
     diaryPage,
     foodPickerPage,

@@ -28,17 +28,37 @@ export class WorkoutPage extends BasePage {
   }
 
   /**
-   * Fill one set's lb + reps (1-based index). The inputs carry no labels
+   * One set's lb / reps inputs (1-based index). They carry no labels
    * (README → future work): each set row contributes [weight, reps] to the
    * page's spinbuttons in order, with the RPE dropdown being a combobox.
    */
+  weightInput(setIndex: number) {
+    return this.page.getByRole('spinbutton').nth((setIndex - 1) * 2)
+  }
+
+  repsInput(setIndex: number) {
+    return this.page.getByRole('spinbutton').nth((setIndex - 1) * 2 + 1)
+  }
+
   async logSet(setIndex: number, weightLb: number, reps: number): Promise<void> {
-    const weightInput = this.page.getByRole('spinbutton').nth((setIndex - 1) * 2)
-    const repsInput = this.page.getByRole('spinbutton').nth((setIndex - 1) * 2 + 1)
-    await weightInput.fill(String(weightLb))
-    await weightInput.blur()
-    await repsInput.fill(String(reps))
-    await repsInput.blur()
+    await this.weightInput(setIndex).fill(String(weightLb))
+    await this.weightInput(setIndex).blur()
+    await this.repsInput(setIndex).fill(String(reps))
+    await this.repsInput(setIndex).blur()
+  }
+
+  /** Back out of an edited in-progress workout, keeping the live-saved edits. */
+  async leaveAndSave(): Promise<void> {
+    await this.backButton.click()
+    await expect(this.page.getByText('Leave workout?')).toBeVisible()
+    await this.page.getByRole('button', { name: 'Save & exit' }).click()
+  }
+
+  /** Back out, reverting this session's edits to the on-open snapshot. */
+  async leaveAndDiscard(): Promise<void> {
+    await this.backButton.click()
+    await expect(this.page.getByText('Leave workout?')).toBeVisible()
+    await this.page.getByRole('button', { name: 'Discard changes' }).click()
   }
 
   /** Add a new exercise via the picker's inline custom-exercise form. */

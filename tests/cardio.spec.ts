@@ -28,6 +28,35 @@ test.describe('cardio', () => {
     }
   })
 
+  test('edits a logged session, keeping its manual calorie override', async ({
+    diaryPage,
+    exerciseAddPage,
+    api,
+  }) => {
+    const activityName = uniqueName('Elliptical')
+    const date = uniquePastDate()
+
+    try {
+      await diaryPage.gotoDate(date)
+      await diaryPage.openAddExercise()
+      await exerciseAddPage.logCardio(activityName, 30, 222)
+      await expect(diaryPage.exerciseRow(activityName)).toBeVisible()
+
+      // Tap the row → edit form (prefilled async, override detected).
+      await diaryPage.exerciseRow(activityName).click()
+      await exerciseAddPage.expectEditLoaded(30)
+      await exerciseAddPage.durationInput.fill('45')
+      await exerciseAddPage.saveChangesButton.click()
+
+      await diaryPage.expectLoaded()
+      const row = diaryPage.exerciseRow(activityName)
+      await expect(row).toContainText('45 min')
+      await expect(row).toContainText('222 calories')
+    } finally {
+      await api.bestEffort(() => api.deleteExerciseEntriesByName(activityName))
+    }
+  })
+
   test('a custom activity estimates burn from MET and body weight', async ({
     diaryPage,
     exerciseAddPage,

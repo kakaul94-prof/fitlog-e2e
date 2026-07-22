@@ -45,17 +45,19 @@ gitignored `.env`; in CI they are repository secrets. No secrets are ever commit
 
 | Area | Spec | Status |
 |---|---|---|
-| Authentication (positive + negative) | `tests/auth.spec.ts` | ✅ |
+| Authentication (positive, negative, sign-out) | `tests/auth.spec.ts` | ✅ |
+| Offline PWA: cached reads + queued write sync | `tests/offline.spec.ts` | ✅ |
+| Progression engine (deload, double progression, goal card) | `tests/progression.spec.ts` | ✅ |
 | Navigation smoke (all tabs, no runtime errors) | `tests/navigation.spec.ts` | ✅ |
 | Food diary logging + day totals (quick add, multi-add) | `tests/diary.spec.ts` | ✅ |
-| Diary move-to-meal, copy-to-day, copy-previous-day | `tests/diary-move-copy.spec.ts` | ✅ |
+| Diary move/copy, day navigation, bulk delete | `tests/diary-move-copy.spec.ts` | ✅ |
 | Streak healing via backfill | `tests/goals.spec.ts` | ✅ |
 | Food search, manual + USDA import, rescale, soft-delete | `tests/food-search.spec.ts` | ✅ |
 | Recipes (per-serving, recompute, unit conversion, duplicate) | `tests/recipe.spec.ts` | ✅ |
-| Cardio (logged burn + custom-activity MET estimate) | `tests/cardio.spec.ts` | ✅ |
-| Strength (sets, e1RM, prefill, supersets, records, goal suggestions) | `tests/strength.spec.ts` | ✅ |
+| Cardio (logged burn, MET estimate, edit with override) | `tests/cardio.spec.ts` | ✅ |
+| Strength (sets, e1RM, prefills, supersets, records, exit flows) | `tests/strength.spec.ts` | ✅ |
 | Nutrient breakdown (%DV, missing-data dashes) | `tests/nutrients.spec.ts` | ✅ |
-| Body measurements → Progress history | `tests/measurements.spec.ts` | ✅ |
+| Body measurements (log, re-date, delete) | `tests/measurements.spec.ts` | ✅ |
 | Streak indicator after logging today | with diary specs | ✅ |
 | Diary entry editing (servings, meal) + delete | `tests/diary-entry.spec.ts` | ✅ |
 | Saved meals (multi-select → save → relog) | `tests/meals.spec.ts` | ✅ |

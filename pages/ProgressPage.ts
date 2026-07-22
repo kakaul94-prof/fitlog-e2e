@@ -20,4 +20,24 @@ export class ProgressPage extends BasePage {
     await this.weightInput.fill(String(value))
     await this.addButton.click()
   }
+
+  /** A row's displayed date (ISO string shown on its date button). */
+  measurementDate(date: string): Locator {
+    return this.page.getByText(date, { exact: true })
+  }
+
+  /** A history row, located through its unique value text. */
+  private measurementRow(value: number) {
+    return this.measurementValue(value).locator('..')
+  }
+
+  /** Change a history row's date via its (visually hidden) date input. */
+  async changeRowDate(value: number, newDate: string): Promise<void> {
+    await this.measurementRow(value).locator('input[type="date"]').fill(newDate)
+  }
+
+  /** Delete a history row (the ✕ button carries aria-label "Delete"). */
+  async deleteRow(value: number): Promise<void> {
+    await this.measurementRow(value).getByRole('button', { name: 'Delete' }).click()
+  }
 }

@@ -22,6 +22,11 @@ export class LoginPage extends BasePage {
   }
 
   async expectLoaded(): Promise<void> {
-    await expect(this.signInButton).toBeVisible()
+    // Signing in/out swaps whole views — allow the same first-paint headroom
+    // as the diary landing.
+    await expect(this.signInButton).toBeVisible({ timeout: 20_000 })
   }
+
+  /** Lives on the More tab, but lands back on this page. */
+  readonly signOutButton = this.page.getByRole('button', { name: 'Sign out' })
 }
