@@ -20,11 +20,12 @@ test.describe('diary entry editing', () => {
       await foodPickerPage.finish()
 
       // Tap the row → entry detail; edit meal and servings (snapshot rescales).
+      // Meal first — its refetch re-syncs the servings field, so unsaved
+      // servings typed earlier would be overwritten.
       await diaryPage.entryRow(foodName).click()
       await diaryEntryPage.expectLoaded(foodName, 1)
       await diaryEntryPage.setMeal('lunch')
-      await diaryEntryPage.setServings(3)
-      await diaryEntryPage.backButton.click()
+      await diaryEntryPage.setServingsAndSave(3) // saves and returns to the diary
 
       await diaryPage.expectLoaded()
       await expect(diaryPage.entryRow(foodName)).toContainText('300 calories')

@@ -24,13 +24,21 @@ export class DiaryEntryPage extends BasePage {
     await expect(this.servingsInput).toHaveValue(String(servings))
   }
 
-  async setServings(servings: number): Promise<void> {
-    await this.servingsInput.fill(String(servings))
-    await this.servingsInput.blur()
-  }
-
+  /** Change the meal (commits immediately) and wait for the server state. */
   async setMeal(meal: string): Promise<void> {
     await this.mealSelect.selectOption(meal)
+    // The select is bound to the fetched entry — once it reflects the new
+    // meal, the refetch (which re-syncs the servings field) has settled.
+    await expect(this.mealSelect).toHaveValue(meal)
+  }
+
+  /**
+   * Servings edits are local until saved: the "Save changes" button appears
+   * once dirty, saves, and navigates back to the diary.
+   */
+  async setServingsAndSave(servings: number): Promise<void> {
+    await this.servingsInput.fill(String(servings))
+    await this.page.getByRole('button', { name: 'Save changes' }).click()
   }
 
   /** Delete the entry, accepting the browser confirm() dialog. */
