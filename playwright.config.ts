@@ -37,22 +37,34 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'], storageState: STORAGE_STATE },
       dependencies: ['setup'],
+      testIgnore: /signout\.spec\.ts/,
     },
     {
       name: 'firefox',
       use: { ...devices['Desktop Firefox'], storageState: STORAGE_STATE },
       dependencies: ['setup'],
+      testIgnore: /signout\.spec\.ts/,
     },
     {
       name: 'webkit',
       use: { ...devices['Desktop Safari'], storageState: STORAGE_STATE },
       dependencies: ['setup'],
+      testIgnore: /signout\.spec\.ts/,
     },
     {
       // FitLog is phone-first — run the suite in a real mobile viewport too.
       name: 'mobile-chrome',
       use: { ...devices['Pixel 7'], storageState: STORAGE_STATE },
       dependencies: ['setup'],
+      testIgnore: /signout\.spec\.ts/,
+    },
+    {
+      // Signing out revokes every session for the shared account, so this
+      // runs strictly after all browser projects have finished.
+      name: 'signout',
+      testMatch: /signout\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'] },
+      dependencies: ['chromium', 'firefox', 'webkit', 'mobile-chrome'],
     },
   ],
 })

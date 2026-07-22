@@ -264,6 +264,16 @@ export class SupabaseApi {
     return rows[0]?.nutrients.kcal ?? null
   }
 
+  /** The stored set values for an exercise key (server truth, cache-free). */
+  async getWorkoutSetValues(
+    exerciseKey: string,
+  ): Promise<Array<{ weight_lb: number | null; reps: number | null }>> {
+    return this.getRows('/rest/v1/workout_sets', {
+      exercise_key: `eq.${exerciseKey}`,
+      select: 'weight_lb,reps',
+    })
+  }
+
   /** Create a custom exercise directly; returns its app-side key. */
   async createCustomExercise(name: string): Promise<string> {
     const res = await this.ctx.post('/rest/v1/custom_exercises', {

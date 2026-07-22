@@ -73,13 +73,14 @@ test.describe('strength', () => {
       await expect(workoutPage.e1rm(152)).toBeVisible() // 120 × (1 + 8/30)
       await workoutPage.leaveAndDiscard()
       await expect(strengthPage.heading).toBeVisible()
-      await page.goto(workoutUrl)
-      await expect(workoutPage.exerciseTitle(exerciseName)).toBeVisible()
-      await expect(workoutPage.weightInput(1)).toHaveValue('100')
-      await expect(workoutPage.repsInput(1)).toHaveValue('5')
-
-      await workoutPage.markDoneButton.click()
-      await expect(strengthPage.heading).toBeVisible()
+      // Assert the restore on the SERVER — a UI reopen inside the persisted
+      // cache's stale window would still show the pre-discard values.
+      const key = await api.getCustomExerciseKey(exerciseName)
+      await expect
+        .poll(async () => (await api.getWorkoutSetValues(key))[0], {
+          timeout: 10_000,
+        })
+        .toEqual({ weight_lb: 100, reps: 5 })
     } finally {
       await api.bestEffort(() => api.deleteStrengthDataForExercise(exerciseName))
     }
