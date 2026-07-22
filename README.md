@@ -9,6 +9,8 @@ Built with **Playwright + TypeScript (strict)**, a **Page Object Model** archite
 cross-browser + mobile projects, and **GitHub Actions CI** that publishes the HTML
 report to GitHub Pages on every run.
 
+[![Playwright HTML report — full matrix green](docs/report.png)](https://kakaul94-prof.github.io/fitlog-e2e/)
+
 ## What this demonstrates
 
 - **Page Object Model** — locators and interactions live in `pages/`; specs read like
@@ -68,7 +70,14 @@ gitignored `.env`; in CI they are repository secrets. No secrets are ever commit
   the test user's own token. A teardown project sweeps anything a crashed run left
   behind.
 - **`storageState` auth** — one real-UI login per run instead of one per test:
-  faster, and auth flakiness is confined to a single setup project.
+  faster, and auth flakiness is confined to a single setup project. The API client
+  reuses that saved token too, so REST seeding/cleanup adds zero extra sign-ins.
+- **Single-project gating where the matrix adds nothing** — the USDA import
+  (external API), calorie-goal (one global profile row), and REST API specs run on
+  desktop Chrome only, with the reason annotated at the skip.
+- **Honest flake policy** — a remote target means occasional cold-start stalls:
+  one local retry / two in CI, so genuine regressions fail while stalls surface as
+  "flaky" in the report instead of being hidden.
 
 ## About the app under test
 
@@ -79,7 +88,9 @@ it would for an independent QA team.
 
 ## Future work
 
-- Remaining flows in the coverage table; more data-driven cases.
 - `data-testid` / `role="alert"` hooks in the app for the few elements that lack
-  accessible handles (e.g. the login error paragraph).
+  accessible handles (login error paragraph, streak pill, icon-only "+" buttons,
+  set-row inputs) — each workaround is annotated in the page objects.
 - Visual regression snapshots, accessibility scans (axe), API contract tests.
+- Data-driven expansion: multiple meals/serving sizes per flow, macro-target
+  assertions, superset and routine flows in strength.
