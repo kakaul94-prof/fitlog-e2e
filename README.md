@@ -65,6 +65,7 @@ gitignored `.env`; in CI they are repository secrets. No secrets are ever commit
 | Workout templates (targets persist, start workout) | `tests/routine.spec.ts` | ✅ |
 | Accessibility: axe scan, login + all tabs | `tests/a11y.spec.ts` | ✅ |
 | API: UI-insert → REST verify, RLS negative, row contract | `tests/api/diary.api.spec.ts` | ✅ |
+| Backend-failure injection (USDA outage, transient 500 retry) | `tests/resilience.spec.ts` | ✅ |
 
 ## Design decisions
 
@@ -87,6 +88,17 @@ gitignored `.env`; in CI they are repository secrets. No secrets are ever commit
 - **Honest flake policy** — a remote target means occasional cold-start stalls:
   one local retry / two in CI, so genuine regressions fail while stalls surface as
   "flaky" in the report instead of being hidden.
+- **CI watches the app, not just this repo** — a 6-hour cron plus a
+  `repository_dispatch` fired by the FitLog repo on every dev push, with a
+  concurrency group so runs never overlap on the shared accounts. A separate
+  **timezone job** re-runs Chromium under `America/Chicago` to catch UTC-only
+  date logic, and a **read-only prod canary** (`@readonly`-tagged auth, nav,
+  axe, and RLS checks — zero writes) verifies the production site on scheduled
+  runs.
+- **Per-worker accounts (opt-in)** — with `E2E_EMAIL_W1..W3` configured, each
+  Playwright worker signs into its own account via a REST-minted storageState,
+  isolating account-global state between parallel workers; unset, all workers
+  share the base account exactly as before.
 
 ## About the app under test
 

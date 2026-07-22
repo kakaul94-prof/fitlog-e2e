@@ -26,6 +26,8 @@ export class FoodPickerPage extends BasePage {
 
   // --- USDA section ---
   readonly searchUsdaButton = this.page.getByRole('button', { name: /^Search USDA for/ })
+  /** Inline error paragraph (USDA failures render here; no role — see README). */
+  readonly errorText = this.page.locator('p.text-destructive')
   // Result buttons live in the block whose direct child is the "USDA database"
   // caption; the `>` keeps ancestor divs from matching too.
   readonly usdaResults = this.page.locator(

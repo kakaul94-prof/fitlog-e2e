@@ -5,7 +5,7 @@ import { requireEnv } from '../utils/env'
 // consuming the storageState saved by auth.setup.ts.
 test.use({ storageState: { cookies: [], origins: [] } })
 
-test.describe('authentication', () => {
+test.describe('authentication', { tag: '@readonly' }, () => {
   test('signs in with valid credentials and lands on the Diary', async ({
     loginPage,
     diaryPage,

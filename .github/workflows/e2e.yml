@@ -6,6 +6,20 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+  # The app deploys independently of this repo — a drift canary every 6 hours
+  # catches app regressions when nobody pushed here.
+  schedule:
+    - cron: '17 */6 * * *'
+  # Fired by the FitLog repo after a push to its dev branch (see the
+  # trigger-e2e workflow there), so every app deploy gets tested.
+  repository_dispatch:
+    types: [fitlog-deploy]
+
+# Overlapping full runs would collide on the shared test accounts; a newer
+# trigger supersedes an in-flight one.
+concurrency:
+  group: e2e-suite
+  cancel-in-progress: true
 
 jobs:
   test:
@@ -18,6 +32,14 @@ jobs:
       E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      # Optional extra accounts — when set, each Playwright worker gets its
+      # own account, isolating profile/streak/latest-weight state in parallel.
+      E2E_EMAIL_W1: ${{ secrets.E2E_EMAIL_W1 }}
+      E2E_PASSWORD_W1: ${{ secrets.E2E_PASSWORD_W1 }}
+      E2E_EMAIL_W2: ${{ secrets.E2E_EMAIL_W2 }}
+      E2E_PASSWORD_W2: ${{ secrets.E2E_PASSWORD_W2 }}
+      E2E_EMAIL_W3: ${{ secrets.E2E_EMAIL_W3 }}
+      E2E_PASSWORD_W3: ${{ secrets.E2E_PASSWORD_W3 }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -36,6 +58,43 @@ jobs:
           name: playwright-report
           path: playwright-report
           retention-days: 30
+
+  tz-test:
+    name: Timezone matrix (America/Chicago)
+    # Date logic (streak, "today", day boundaries) only ever runs under UTC in
+    # the main job — re-run the Chromium project in a US timezone.
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      TZ: America/Chicago
+      BASE_URL: ${{ secrets.BASE_URL }}
+      E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
+      E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      E2E_EMAIL_W1: ${{ secrets.E2E_EMAIL_W1 }}
+      E2E_PASSWORD_W1: ${{ secrets.E2E_PASSWORD_W1 }}
+      E2E_EMAIL_W2: ${{ secrets.E2E_EMAIL_W2 }}
+      E2E_PASSWORD_W2: ${{ secrets.E2E_PASSWORD_W2 }}
+      E2E_EMAIL_W3: ${{ secrets.E2E_EMAIL_W3 }}
+      E2E_PASSWORD_W3: ${{ secrets.E2E_PASSWORD_W3 }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test --project=chromium
+      - name: Upload TZ report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-tz
+          path: playwright-report
+          retention-days: 14
 
   publish-report:
     name: Publish report to GitHub Pages
@@ -59,3 +118,49 @@ jobs:
           path: playwright-report
       - id: deployment
         uses: actions/deploy-pages@v4
+
+  prod-canary:
+    name: Prod canary (read-only)
+    # Production is otherwise never verified. Runs the @readonly subset (auth,
+    # navigation, axe, RLS check — zero writes) against the prod site on
+    # scheduled/dispatched runs. Skips quietly until the PROD_* secrets exist.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'repository_dispatch'
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      BASE_URL: ${{ secrets.PROD_BASE_URL || 'https://fitlog-prod.pages.dev' }}
+      E2E_EMAIL: ${{ secrets.PROD_E2E_EMAIL }}
+      E2E_PASSWORD: ${{ secrets.PROD_E2E_PASSWORD }}
+      SUPABASE_URL: ${{ secrets.PROD_SUPABASE_URL }}
+      SUPABASE_ANON_KEY: ${{ secrets.PROD_SUPABASE_ANON_KEY }}
+    steps:
+      - name: Check prod secrets
+        id: guard
+        run: |
+          if [ -n "$E2E_EMAIL" ] && [ -n "$SUPABASE_URL" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "PROD_* secrets not configured — skipping the canary."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.guard.outputs.configured == 'true'
+      - uses: actions/setup-node@v4
+        if: steps.guard.outputs.configured == 'true'
+        with:
+          node-version: 20
+          cache: npm
+      - if: steps.guard.outputs.configured == 'true'
+        run: npm ci
+      - if: steps.guard.outputs.configured == 'true'
+        run: npx playwright install --with-deps chromium
+      - if: steps.guard.outputs.configured == 'true'
+        run: npx playwright test --grep "@readonly" --project=chromium
+      - name: Upload canary report artifact
+        if: always() && steps.guard.outputs.configured == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: prod-canary-report
+          path: playwright-report
+          retention-days: 14

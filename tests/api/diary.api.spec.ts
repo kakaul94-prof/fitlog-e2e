@@ -84,7 +84,7 @@ test.describe('diary API (Supabase REST)', () => {
     }
   })
 
-  test('row-level security returns no diary rows to unauthenticated requests', async ({
+  test('row-level security returns no diary rows to unauthenticated requests', { tag: '@readonly' }, async ({
     request,
   }) => {
     // Anon key only — no user token. RLS is owner-only on every table, so the

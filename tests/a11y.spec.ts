@@ -39,7 +39,7 @@ const KNOWN_VIOLATIONS: Record<string, Array<Record<string, unknown>>> = {
   ],
 }
 
-test.describe('accessibility (axe)', () => {
+test.describe('accessibility (axe)', { tag: '@readonly' }, () => {
   test('each main tab has no serious or critical violations beyond the known set', async ({
     page,
     diaryPage,
@@ -64,7 +64,7 @@ test.describe('accessibility (axe)', () => {
   })
 })
 
-test.describe('accessibility (axe) — signed out', () => {
+test.describe('accessibility (axe) — signed out', { tag: '@readonly' }, () => {
   test.use({ storageState: { cookies: [], origins: [] } })
 
   test('the login page has no serious or critical violations', async ({

@@ -8,7 +8,7 @@ const tabs: Array<{ name: TabName; heading: string }> = [
   { name: 'Diary', heading: 'Diary' },
 ]
 
-test('every bottom-nav tab loads its page without runtime errors', async ({
+test('every bottom-nav tab loads its page without runtime errors', { tag: '@readonly' }, async ({
   page,
   diaryPage,
   bottomNav,

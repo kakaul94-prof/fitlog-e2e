@@ -1,8 +1,19 @@
 import fs from 'node:fs'
+import path from 'node:path'
 import { request, type APIRequestContext } from '@playwright/test'
 import { STORAGE_STATE } from '../playwright.config'
 import { requireEnv } from './env'
 import { E2E_PREFIX } from './test-data'
+
+/** The supabase-js session shape a password grant returns. */
+interface SupabaseSession {
+  access_token: string
+  refresh_token?: string
+  token_type?: string
+  expires_in?: number
+  expires_at?: number
+  user?: unknown
+}
 
 export interface SeedNutrients {
   kcal: number
@@ -45,21 +56,60 @@ export interface DiaryEntryRow {
  * deployed app exposes no test hooks, and RLS confines every call to the
  * test account's own data.
  *
- * The access token is read from the storageState saved by auth.setup.ts
- * (no extra sign-in), falling back to a password grant.
+ * By default the access token is read from a storageState file (no extra
+ * sign-in) — auth.setup's for account 0, or a worker's synthesized state.
+ * Passing creds forces a fresh password grant (teardown sweeps, canary).
  */
 export class SupabaseApi {
   private constructor(private readonly ctx: APIRequestContext) {}
 
-  static async create(): Promise<SupabaseApi> {
+  static async create(
+    options: { creds?: { email: string; password: string }; stateFile?: string } = {},
+  ): Promise<SupabaseApi> {
     const url = requireEnv('SUPABASE_URL')
     const anonKey = requireEnv('SUPABASE_ANON_KEY')
-    const token = readTokenFromStorageState() ?? (await passwordGrant(url, anonKey))
+    const token = options.creds
+      ? (await passwordGrant(url, anonKey, options.creds)).access_token
+      : (readTokenFromStorageState(options.stateFile) ??
+        (await passwordGrant(url, anonKey)).access_token)
     const ctx = await request.newContext({
       baseURL: url,
       extraHTTPHeaders: { apikey: anonKey, Authorization: `Bearer ${token}` },
     })
     return new SupabaseApi(ctx)
+  }
+
+  /**
+   * Sign an account in over REST and write a Playwright storageState file
+   * whose localStorage carries the supabase-js session — a browser context
+   * loading it starts authenticated as that account, no UI login needed.
+   * Used by the per-worker auth fixture for accounts beyond account 0.
+   */
+  static async createStorageStateFile(
+    creds: { email: string; password: string },
+    filePath: string,
+  ): Promise<void> {
+    const url = requireEnv('SUPABASE_URL')
+    const anonKey = requireEnv('SUPABASE_ANON_KEY')
+    const session = await passwordGrant(url, anonKey, creds)
+    if (!session.expires_at) {
+      session.expires_at = Math.floor(Date.now() / 1000) + (session.expires_in ?? 3600)
+    }
+    const projectRef = new URL(url).hostname.split('.')[0]
+    const baseURL = process.env.BASE_URL ?? 'https://fitlog-9wl.pages.dev'
+    const state = {
+      cookies: [],
+      origins: [
+        {
+          origin: new URL(baseURL).origin,
+          localStorage: [
+            { name: `sb-${projectRef}-auth-token`, value: JSON.stringify(session) },
+          ],
+        },
+      ],
+    }
+    fs.mkdirSync(path.dirname(filePath), { recursive: true })
+    fs.writeFileSync(filePath, JSON.stringify(state))
   }
 
   async dispose(): Promise<void> {
@@ -443,9 +493,9 @@ export class SupabaseApi {
 }
 
 /** Reuse the session captured by auth.setup.ts instead of signing in again. */
-function readTokenFromStorageState(): string | null {
+function readTokenFromStorageState(filePath: string = STORAGE_STATE): string | null {
   try {
-    const state = JSON.parse(fs.readFileSync(STORAGE_STATE, 'utf-8')) as {
+    const state = JSON.parse(fs.readFileSync(filePath, 'utf-8')) as {
       origins?: Array<{ localStorage?: Array<{ name: string; value: string }> }>
     }
     for (const origin of state.origins ?? []) {
@@ -465,21 +515,24 @@ function readTokenFromStorageState(): string | null {
   return null
 }
 
-async function passwordGrant(url: string, anonKey: string): Promise<string> {
+async function passwordGrant(
+  url: string,
+  anonKey: string,
+  creds?: { email: string; password: string },
+): Promise<SupabaseSession> {
   const ctx = await request.newContext()
   try {
     const res = await ctx.post(`${url}/auth/v1/token?grant_type=password`, {
       headers: { apikey: anonKey },
       data: {
-        email: requireEnv('E2E_EMAIL'),
-        password: requireEnv('E2E_PASSWORD'),
+        email: creds?.email ?? requireEnv('E2E_EMAIL'),
+        password: creds?.password ?? requireEnv('E2E_PASSWORD'),
       },
     })
     if (!res.ok()) {
       throw new Error(`Supabase password grant failed: ${res.status()} ${await res.text()}`)
     }
-    const body = (await res.json()) as { access_token: string }
-    return body.access_token
+    return (await res.json()) as SupabaseSession
   } finally {
     await ctx.dispose()
   }
