@@ -49,6 +49,41 @@ test.describe('diary API (Supabase REST)', () => {
     }
   })
 
+  test('stored rows keep the contract the suite depends on', async ({ api }) => {
+    const foodName = uniqueName('Contract')
+    const date = uniquePastDate()
+
+    try {
+      await api.createFood(foodName, { kcal: 123, protein: 9 })
+      await api.createDiaryEntry({ date, meal: 'lunch', name: foodName, kcal: 123 })
+
+      const food = await api.getFoodRowByName(foodName)
+      expect(typeof food.id).toBe('string')
+      expect(food.source).toBe('manual')
+      expect(typeof food.serving_qty).toBe('number')
+      expect(typeof food.serving_unit).toBe('string')
+      expect(food.archived).toBe(false)
+      expect(typeof food.created_at).toBe('string')
+      expect(food.nutrients).toMatchObject({ kcal: 123, protein: 9 })
+
+      const [entry] = await api.getDiaryEntries({ food_name: `eq.${foodName}` })
+      expect(entry).toBeDefined()
+      expect(entry!.entry_date).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+      expect(entry!.meal).toBe('lunch')
+      expect(typeof entry!.servings).toBe('number')
+      expect(entry!.nutrients.kcal).toBe(123)
+
+      const profile = await api.getProfile()
+      expect(typeof profile.id).toBe('string')
+      expect(['calculated', 'manual', null]).toContain(profile.calorie_goal_mode)
+    } finally {
+      await api.bestEffort(async () => {
+        await api.deleteDiaryEntriesByFoodName(foodName)
+        await api.deleteFoodsByName(foodName)
+      })
+    }
+  })
+
   test('row-level security returns no diary rows to unauthenticated requests', async ({
     request,
   }) => {

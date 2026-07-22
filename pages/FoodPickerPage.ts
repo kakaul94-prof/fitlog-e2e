@@ -116,6 +116,33 @@ export class FoodPickerPage extends BasePage {
     await this.page.getByRole('button', { name: 'meals', exact: true }).click()
   }
 
+  /** Press-and-hold a library food row to open its menu (450ms threshold). */
+  async longPressFood(name: string): Promise<void> {
+    await this.foodRow(name).hover()
+    await this.page.mouse.down()
+    // Fixed interaction duration, not a wait-for-state.
+    await this.page.waitForTimeout(700)
+    await this.page.mouse.up()
+  }
+
+  /** From the long-press menu: delete the food from the library. */
+  async deleteFoodFromMenu(): Promise<void> {
+    await this.page.getByRole('button', { name: 'Delete food' }).click()
+  }
+
+  /**
+   * "Copy day": pull the previous day's entries for this meal into the
+   * current day (the sheet defaults its source date to yesterday).
+   */
+  async copyPreviousDay(expectedCount: number): Promise<void> {
+    await this.page.getByRole('button', { name: 'Copy day' }).click()
+    await this.page
+      .getByRole('button', {
+        name: new RegExp(`^Copy ${expectedCount} items?$`),
+      })
+      .click()
+  }
+
   /** With the Meals tab open: meal row → confirm sheet. */
   async logSavedMeal(name: string, itemCount: number, meal: MealKey): Promise<void> {
     await this.savedMealRow(name).click()

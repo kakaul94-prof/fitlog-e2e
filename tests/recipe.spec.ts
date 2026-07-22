@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { test, expect } from '../fixtures/test-options'
 import { SEED_FOODS } from '../data/test-data'
 import { uniqueName, uniquePastDate } from '../utils/test-data'
@@ -108,6 +109,79 @@ test.describe('recipes', () => {
         await api.deleteFoodsByName(recipeName)
         await api.deleteFoodsByName(riceName)
         await api.deleteFoodsByName(chickenName)
+      })
+    }
+  })
+
+  test('converts ingredient amounts through alternate units', async ({
+    libraryPage,
+    recipeEditPage,
+    api,
+  }) => {
+    const foodName = uniqueName('Oats')
+    const recipeName = uniqueName('Porridge')
+
+    // 100 kcal per 100 g serving, with a "cup" unit weighing 150 g → 150 kcal.
+    await api.createFood(
+      foodName,
+      { kcal: 100 },
+      {
+        servingGrams: 100,
+        portions: [{ id: randomUUID(), label: 'cup', grams: 150 }],
+      },
+    )
+    try {
+      await libraryPage.createRecipe()
+      await recipeEditPage.expectNewRecipeLoaded()
+      await recipeEditPage.setName(recipeName)
+      await recipeEditPage.addIngredient(foodName)
+      await expect(recipeEditPage.ingredientRow(foodName)).toContainText('100 calories')
+
+      await recipeEditPage.setIngredientUnit(foodName, 'cup')
+      await expect(recipeEditPage.ingredientRow(foodName)).toContainText('150 calories')
+      // The stored per-serving nutrition recomputes with the conversion.
+      await expect
+        .poll(() => api.getFoodKcalByName(recipeName), { timeout: 10_000 })
+        .toBe(150)
+    } finally {
+      await api.bestEffort(async () => {
+        await api.deleteFoodsByName(recipeName)
+        await api.deleteFoodsByName(foodName)
+      })
+    }
+  })
+
+  test('duplicates a recipe with its ingredients and nutrition', async ({
+    libraryPage,
+    recipeEditPage,
+    api,
+  }) => {
+    const riceName = uniqueName('Rice')
+    const recipeName = uniqueName('Pilaf')
+    const copyName = `${recipeName} (copy)`
+
+    await api.createFood(riceName, SEED_FOODS.rice)
+    try {
+      await libraryPage.createRecipe()
+      await recipeEditPage.expectNewRecipeLoaded()
+      await recipeEditPage.setName(recipeName)
+      await recipeEditPage.addIngredient(riceName)
+      await expect
+        .poll(() => api.getFoodKcalByName(recipeName), { timeout: 10_000 })
+        .toBe(SEED_FOODS.rice.kcal)
+
+      // "Save as a copy" opens the duplicate's editor.
+      await recipeEditPage.duplicateButton.click()
+      await expect(recipeEditPage.nameInput).toHaveValue(copyName)
+      await expect(recipeEditPage.ingredientRow(riceName)).toBeVisible()
+      await expect
+        .poll(() => api.getFoodKcalByName(copyName), { timeout: 10_000 })
+        .toBe(SEED_FOODS.rice.kcal)
+    } finally {
+      await api.bestEffort(async () => {
+        await api.deleteFoodsByName(copyName)
+        await api.deleteFoodsByName(recipeName)
+        await api.deleteFoodsByName(riceName)
       })
     }
   })

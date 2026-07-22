@@ -1,5 +1,5 @@
 import { test, expect } from '../fixtures/test-options'
-import { uniqueName, uniquePastDate } from '../utils/test-data'
+import { addDaysISO, uniqueName, uniquePastDate } from '../utils/test-data'
 
 test.describe('diary move and copy', () => {
   test('moves an entry to another meal and copies entries to another day', async ({
@@ -38,6 +38,36 @@ test.describe('diary move and copy', () => {
       await api.bestEffort(async () => {
         await api.deleteDiaryEntriesByFoodName(rice)
         await api.deleteDiaryEntriesByFoodName(chicken)
+      })
+    }
+  })
+
+  test('copies the previous day\'s meal in from the picker', async ({
+    diaryPage,
+    foodPickerPage,
+    api,
+  }) => {
+    const eggs = uniqueName('Eggs')
+    const toast = uniqueName('Toast')
+    const sourceDate = uniquePastDate()
+    // The picker's "Copy day" sheet defaults its source to the previous day.
+    const targetDate = addDaysISO(sourceDate, 1)
+
+    await api.createDiaryEntry({ date: sourceDate, meal: 'breakfast', name: eggs, kcal: 150 })
+    await api.createDiaryEntry({ date: sourceDate, meal: 'breakfast', name: toast, kcal: 250 })
+    try {
+      await foodPickerPage.gotoFor(targetDate, 'breakfast')
+      await foodPickerPage.copyPreviousDay(2)
+
+      // Copying navigates back to the target day's diary.
+      await diaryPage.expectLoaded()
+      await expect(diaryPage.entryRow(eggs)).toBeVisible()
+      await expect(diaryPage.entryRow(toast)).toBeVisible()
+      await expect(diaryPage.mealHeader('Breakfast')).toContainText('400 calories')
+    } finally {
+      await api.bestEffort(async () => {
+        await api.deleteDiaryEntriesByFoodName(eggs)
+        await api.deleteDiaryEntriesByFoodName(toast)
       })
     }
   })

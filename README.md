@@ -48,19 +48,21 @@ gitignored `.env`; in CI they are repository secrets. No secrets are ever commit
 | Authentication (positive + negative) | `tests/auth.spec.ts` | ✅ |
 | Navigation smoke (all tabs, no runtime errors) | `tests/navigation.spec.ts` | ✅ |
 | Food diary logging + day totals (quick add, multi-add) | `tests/diary.spec.ts` | ✅ |
-| Diary move-to-meal + copy-to-day | `tests/diary-move-copy.spec.ts` | ✅ |
-| Food search, manual food + USDA import, serving rescale | `tests/food-search.spec.ts` | ✅ |
-| Recipes (per-serving nutrition, recompute on edit, log) | `tests/recipe.spec.ts` | ✅ |
-| Cardio (logged burn on the diary) | `tests/cardio.spec.ts` | ✅ |
-| Strength (sets, e1RM, prefill, supersets, records page) | `tests/strength.spec.ts` | ✅ |
+| Diary move-to-meal, copy-to-day, copy-previous-day | `tests/diary-move-copy.spec.ts` | ✅ |
+| Streak healing via backfill | `tests/goals.spec.ts` | ✅ |
+| Food search, manual + USDA import, rescale, soft-delete | `tests/food-search.spec.ts` | ✅ |
+| Recipes (per-serving, recompute, unit conversion, duplicate) | `tests/recipe.spec.ts` | ✅ |
+| Cardio (logged burn + custom-activity MET estimate) | `tests/cardio.spec.ts` | ✅ |
+| Strength (sets, e1RM, prefill, supersets, records, goal suggestions) | `tests/strength.spec.ts` | ✅ |
+| Nutrient breakdown (%DV, missing-data dashes) | `tests/nutrients.spec.ts` | ✅ |
 | Body measurements → Progress history | `tests/measurements.spec.ts` | ✅ |
 | Streak indicator after logging today | with diary specs | ✅ |
 | Diary entry editing (servings, meal) + delete | `tests/diary-entry.spec.ts` | ✅ |
 | Saved meals (multi-select → save → relog) | `tests/meals.spec.ts` | ✅ |
-| Manual calorie goal + eat-back exercise credit | `tests/goals.spec.ts` | ✅ |
+| Calorie goal, eat-back credit, macro target modes | `tests/goals.spec.ts` | ✅ |
 | Workout templates (targets persist, start workout) | `tests/routine.spec.ts` | ✅ |
 | Accessibility: axe scan, login + all tabs | `tests/a11y.spec.ts` | ✅ |
-| API: UI-insert → REST verify, RLS negative | `tests/api/diary.api.spec.ts` | ✅ |
+| API: UI-insert → REST verify, RLS negative, row contract | `tests/api/diary.api.spec.ts` | ✅ |
 
 ## Design decisions
 

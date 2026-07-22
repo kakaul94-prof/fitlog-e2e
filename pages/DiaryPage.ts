@@ -76,6 +76,28 @@ export class DiaryPage extends BasePage {
    */
   readonly streakBadge = this.page.locator('header').getByText(/^\d+$/)
 
+  /** The current streak count as a number (badge must be visible). */
+  async streakCount(): Promise<number> {
+    await expect(this.streakBadge).toBeVisible()
+    return Number(await this.streakBadge.textContent())
+  }
+
+  /** Open the day's full nutrient breakdown page. */
+  async openNutrientBreakdown(): Promise<void> {
+    await this.page
+      .getByRole('button', { name: /View full nutrient breakdown/ })
+      .click()
+  }
+
+  /** A macro bar's "{have}/{target}g" readout. */
+  macroBar(text: string): Locator {
+    return this.page.getByText(text, { exact: true })
+  }
+
+  async reload(): Promise<void> {
+    await this.page.reload()
+  }
+
   /** The hero's "+ {kcal} exercise" line (eat-back enabled + burn logged). */
   exerciseCredit(kcal: number): Locator {
     return this.page.getByText(`+ ${kcal} exercise`)

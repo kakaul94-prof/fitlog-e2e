@@ -85,4 +85,30 @@ test.describe('food search and food form', () => {
       await api.bestEffort(() => api.deleteUsdaFoodsCreatedAfter(testStart))
     }
   })
+
+  test('deletes a food from the library via its long-press menu', async ({
+    foodPickerPage,
+    api,
+  }) => {
+    const foodName = uniqueName('Crackers')
+
+    await api.createFood(foodName, { kcal: 120 })
+    try {
+      await foodPickerPage.gotoFor(uniquePastDate(), 'snacks')
+      await foodPickerPage.searchInput.fill(foodName)
+      await expect(foodPickerPage.foodRow(foodName)).toBeVisible()
+
+      await foodPickerPage.longPressFood(foodName)
+      await foodPickerPage.deleteFoodFromMenu()
+
+      await expect(foodPickerPage.foodRow(foodName)).toBeHidden()
+      // The app's "delete" is a soft delete: the row survives, archived, so
+      // past diary snapshots that reference it stay intact.
+      await expect
+        .poll(() => api.isFoodArchived(foodName), { timeout: 10_000 })
+        .toBe(true)
+    } finally {
+      await api.bestEffort(() => api.deleteFoodsByName(foodName))
+    }
+  })
 })

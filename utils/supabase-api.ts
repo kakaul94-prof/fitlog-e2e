@@ -9,6 +9,14 @@ export interface SeedNutrients {
   protein?: number
   carb?: number
   fat?: number
+  fiber?: number
+}
+
+/** An alternate serving unit stored on a food (subset of the app's Portion). */
+export interface SeedPortion {
+  id: string
+  label: string
+  grams: number
 }
 
 /** The profile columns the goals specs capture and restore. */
@@ -18,6 +26,7 @@ export interface ProfileRow {
   manual_calorie_goal: number | null
   calorie_goal_history: unknown
   eat_back_exercise: boolean | null
+  macro_targets: unknown
 }
 
 /** The diary_entries columns the API specs assert on. */
@@ -71,7 +80,11 @@ export class SupabaseApi {
   }
 
   /** Insert a manual food into the library; returns its id. */
-  async createFood(name: string, nutrients: SeedNutrients): Promise<{ id: string }> {
+  async createFood(
+    name: string,
+    nutrients: SeedNutrients,
+    options: { servingGrams?: number; portions?: SeedPortion[] } = {},
+  ): Promise<{ id: string }> {
     const res = await this.ctx.post('/rest/v1/foods', {
       headers: { Prefer: 'return=representation' },
       data: {
@@ -79,6 +92,8 @@ export class SupabaseApi {
         source: 'manual',
         serving_qty: 1,
         serving_unit: 'serving',
+        serving_grams: options.servingGrams ?? null,
+        portions: options.portions ?? [],
         nutrients,
       },
     })
@@ -88,6 +103,84 @@ export class SupabaseApi {
     const [row] = (await res.json()) as Array<{ id: string }>
     if (!row) throw new Error(`createFood(${name}): empty response`)
     return row
+  }
+
+  /** Whether a food row is archived (the app's "delete" is a soft delete). */
+  async isFoodArchived(name: string): Promise<boolean | null> {
+    const rows = await this.getRows<{ archived: boolean }>('/rest/v1/foods', {
+      name: `eq.${name}`,
+      select: 'archived',
+    })
+    return rows[0]?.archived ?? null
+  }
+
+  /** The full stored row for a food, for contract checks. */
+  async getFoodRowByName(name: string): Promise<Record<string, unknown>> {
+    const rows = await this.getRows<Record<string, unknown>>('/rest/v1/foods', {
+      name: `eq.${name}`,
+    })
+    const row = rows[0]
+    if (!row) throw new Error(`getFoodRowByName: no food named ${name}`)
+    return row
+  }
+
+  /** Insert a body measurement (weight by default). */
+  async createMeasurement(input: { date: string; value: number }): Promise<void> {
+    const res = await this.ctx.post('/rest/v1/measurements', {
+      data: {
+        measured_on: input.date,
+        type: 'weight',
+        value: input.value,
+        unit: 'lb',
+      },
+    })
+    if (!res.ok()) {
+      throw new Error(`createMeasurement failed: ${res.status()} ${await res.text()}`)
+    }
+  }
+
+  /** Seed a strength goal so add-exercise produces progression suggestions. */
+  async createStrengthGoal(input: {
+    exerciseKey: string
+    exerciseName: string
+    targetWeightLb: number
+    targetReps: number
+    target1rmLb: number
+    method: 'linear' | 'double' | '531'
+    incrementLb: number
+    repLow: number
+    repHigh: number
+    sets: number
+  }): Promise<void> {
+    const res = await this.ctx.post('/rest/v1/strength_goals', {
+      data: {
+        exercise_key: input.exerciseKey,
+        exercise_name: input.exerciseName,
+        target_weight_lb: input.targetWeightLb,
+        target_reps: input.targetReps,
+        target_1rm_lb: input.target1rmLb,
+        method: input.method,
+        increment_lb: input.incrementLb,
+        rep_low: input.repLow,
+        rep_high: input.repHigh,
+        sets: input.sets,
+      },
+    })
+    if (!res.ok()) {
+      throw new Error(`createStrengthGoal failed: ${res.status()} ${await res.text()}`)
+    }
+  }
+
+  async deleteCustomActivitiesByName(name: string): Promise<void> {
+    await this.delete('/rest/v1/custom_activities', { name: `eq.${name}` })
+  }
+
+  /** Remove E2E-named diary entries on one specific date (streak isolation). */
+  async deleteE2EDiaryEntriesOn(date: string): Promise<void> {
+    await this.delete('/rest/v1/diary_entries', {
+      entry_date: `eq.${date}`,
+      food_name: `like.${E2E_PREFIX} *`,
+    })
   }
 
   /** GET diary entries with PostgREST filters — also used by the API specs. */
@@ -193,14 +286,16 @@ export class SupabaseApi {
       select: 'id',
     })
     for (const custom of customs) {
+      const key = `custom:${custom.id}`
       const sets = await this.getRows<{ workout_id: string }>(
         '/rest/v1/workout_sets',
-        { exercise_key: `eq.custom:${custom.id}`, select: 'workout_id' },
+        { exercise_key: `eq.${key}`, select: 'workout_id' },
       )
       const workoutIds = [...new Set(sets.map((s) => s.workout_id))]
       if (workoutIds.length > 0) {
         await this.delete('/rest/v1/workouts', { id: `in.(${workoutIds.join(',')})` })
       }
+      await this.delete('/rest/v1/strength_goals', { exercise_key: `eq.${key}` })
       await this.delete('/rest/v1/custom_exercises', { id: `eq.${custom.id}` })
     }
   }
@@ -238,6 +333,7 @@ export class SupabaseApi {
     await this.delete('/rest/v1/exercise_entries', { name: pattern })
     await this.delete('/rest/v1/meals', { name: pattern })
     await this.delete('/rest/v1/routines', { name: pattern })
+    await this.delete('/rest/v1/custom_activities', { name: pattern })
     // Strength: E2E custom exercises drag their workouts along.
     const customs = await this.getRows<{ name: string }>('/rest/v1/custom_exercises', {
       name: pattern,

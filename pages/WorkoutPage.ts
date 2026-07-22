@@ -16,6 +16,8 @@ export class WorkoutPage extends BasePage {
   readonly backButton = this.page.locator('header').getByRole('button').first()
   // One row per set — the only per-row control with an accessible name.
   readonly setRows = this.page.getByRole('button', { name: 'Delete set' })
+  // Set inputs in DOM order: [weight, reps] per row (RPE is a combobox).
+  readonly spinbuttons = this.page.getByRole('spinbutton')
 
   exerciseTitle(name: string): Locator {
     return this.page.getByRole('button', { name, exact: true })

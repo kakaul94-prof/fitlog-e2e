@@ -32,4 +32,29 @@ export class ProfilePage extends BasePage {
     await this.saveButton.click()
     await expect(this.savedIndicator).toBeVisible()
   }
+
+  /**
+   * A macro row's controls (Protein / Fat / Carbs). The row's select and
+   * value input carry no accessible names (README → future work): walk up
+   * from the row's label to its container.
+   */
+  private macroRow(label: 'Protein' | 'Fat' | 'Carbs') {
+    return this.page.locator(`label:text-is("${label}")`).locator('..').locator('..')
+  }
+
+  /** Set a macro's mode (by visible option label) and value, without saving. */
+  async setMacroTarget(
+    label: 'Protein' | 'Fat' | 'Carbs',
+    modeLabel: string,
+    value: number,
+  ): Promise<void> {
+    const row = this.macroRow(label)
+    await row.getByRole('combobox').selectOption({ label: modeLabel })
+    await row.getByRole('spinbutton').fill(String(value))
+  }
+
+  async save(): Promise<void> {
+    await this.saveButton.click()
+    await expect(this.savedIndicator).toBeVisible()
+  }
 }

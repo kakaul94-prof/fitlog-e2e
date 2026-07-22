@@ -82,6 +82,59 @@ test.describe('strength', () => {
     }
   })
 
+  test('a strength goal produces suggested weights in the next session', async ({
+    strengthPage,
+    workoutPage,
+    api,
+  }) => {
+    const exerciseName = uniqueName('Squat')
+
+    try {
+      // Session 1: 3×5 @ 100 lb (hits a linear goal's rep target).
+      await strengthPage.goto()
+      await strengthPage.startEmptyWorkout()
+      await workoutPage.addCustomExercise(exerciseName)
+      await workoutPage.addSetButton.click()
+      await workoutPage.addSetButton.click()
+      await workoutPage.logSet(1, 100, 5)
+      await workoutPage.logSet(2, 100, 5)
+      await workoutPage.logSet(3, 100, 5)
+      await workoutPage.markDoneButton.click()
+      await expect(strengthPage.heading).toBeVisible()
+
+      // Goal: linear progression, +5 lb per session, 3×5.
+      const key = await api.getCustomExerciseKey(exerciseName)
+      await api.createStrengthGoal({
+        exerciseKey: key,
+        exerciseName,
+        targetWeightLb: 150,
+        targetReps: 5,
+        target1rmLb: 175,
+        method: 'linear',
+        incrementLb: 5,
+        repLow: 5,
+        repHigh: 8,
+        sets: 3,
+      })
+
+      // Session 2: the exercise arrives with three sets pre-filled at the
+      // suggested next load (100 + 5) and the goal's rep floor.
+      await strengthPage.startEmptyWorkout()
+      await workoutPage.addExistingExercise(exerciseName)
+      await expect(workoutPage.setRows).toHaveCount(3)
+      const spinbuttons = workoutPage.spinbuttons
+      await expect(spinbuttons.nth(0)).toHaveValue('105')
+      await expect(spinbuttons.nth(1)).toHaveValue('5')
+      await expect(spinbuttons.nth(4)).toHaveValue('105')
+
+      // Prefilled values count as logged content — finish cleanly.
+      await workoutPage.markDoneButton.click()
+      await expect(strengthPage.heading).toBeVisible()
+    } finally {
+      await api.bestEffort(() => api.deleteStrengthDataForExercise(exerciseName))
+    }
+  })
+
   test('shows records and history on the exercise detail page', async ({
     page,
     strengthPage,

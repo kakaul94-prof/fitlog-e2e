@@ -57,7 +57,9 @@ export class RecipeEditPage extends BasePage {
     await this.addIngredientButton.click()
     await this.ingredientSearch.fill(foodName)
     await this.ingredientOption(foodName).click()
-    await expect(this.ingredientRow(foodName)).toBeVisible()
+    // The pick inserts + recomputes the recipe server-side; under parallel
+    // load that round-trip can exceed the default expect timeout.
+    await expect(this.ingredientRow(foodName)).toBeVisible({ timeout: 20_000 })
   }
 
   /** The "Per serving (makes N)" section heading — confirms the stored yield. */
@@ -74,4 +76,15 @@ export class RecipeEditPage extends BasePage {
     await amountInput.fill(String(amount))
     await amountInput.blur()
   }
+
+  /** Switch an ingredient's unit by visible label (commits immediately). */
+  async setIngredientUnit(foodName: string, unitLabel: string): Promise<void> {
+    await this.ingredientRow(foodName)
+      .locator('..')
+      .getByLabel('Unit')
+      .selectOption({ label: unitLabel })
+  }
+
+  /** Header action: "Save as a copy" (duplicates and opens the copy). */
+  readonly duplicateButton = this.page.getByRole('button', { name: 'Save as a copy' })
 }

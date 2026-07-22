@@ -14,6 +14,22 @@ export function escapeRegExp(s: string): string {
 }
 
 /**
+ * Today ± offset as a LOCAL-timezone ISO date — matching what the app's
+ * todayISO() computes in the browser on the same machine/runner.
+ */
+export function localDateISO(offsetDays = 0): string {
+  const d = new Date(Date.now() + offsetDays * 86_400_000)
+  return new Intl.DateTimeFormat('en-CA', { dateStyle: 'short' }).format(d)
+}
+
+/** ISO date arithmetic (UTC-noon anchor sidesteps DST edges). */
+export function addDaysISO(iso: string, days: number): string {
+  const d = new Date(`${iso}T12:00:00Z`)
+  d.setUTCDate(d.getUTCDate() + days)
+  return d.toISOString().slice(0, 10)
+}
+
+/**
  * A random diary date in the 1990s. Tests that assert day totals use a unique
  * past date so the day contains only their own entries — parallel tests (and
  * other browser projects) all write to the same account, but never to the same
