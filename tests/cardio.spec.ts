@@ -45,7 +45,7 @@ test.describe('cardio', () => {
       // Tap the row → edit form (prefilled async, override detected).
       await diaryPage.exerciseRow(activityName).click()
       await exerciseAddPage.expectEditLoaded(30)
-      await exerciseAddPage.durationInput.fill('45')
+      await exerciseAddPage.setDuration(45)
       await exerciseAddPage.saveChangesButton.click()
 
       await diaryPage.expectLoaded()
