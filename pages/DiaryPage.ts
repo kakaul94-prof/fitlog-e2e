@@ -75,4 +75,50 @@ export class DiaryPage extends BasePage {
    * future work) — it's the only digits-only text in the page header.
    */
   readonly streakBadge = this.page.locator('header').getByText(/^\d+$/)
+
+  /** The hero's "+ {kcal} exercise" line (eat-back enabled + burn logged). */
+  exerciseCredit(kcal: number): Locator {
+    return this.page.getByText(`+ ${kcal} exercise`)
+  }
+
+  /** The calorie dial, addressable by its accessible remaining-calories name. */
+  remainingRing(kcal: number): Locator {
+    return this.page.getByRole('img', { name: `${kcal} calories remaining` })
+  }
+
+  /**
+   * Press-and-hold an entry row to open its action sheet (the app's
+   * useLongPress fires at 450ms of pointer hold without movement).
+   */
+  async longPressEntry(foodName: string): Promise<void> {
+    const row = this.entryRow(foodName)
+    await row.hover()
+    await this.page.mouse.down()
+    // Fixed interaction duration (the app's threshold is 450ms), not a
+    // wait-for-state — the page-object layer is exempt from no-wait-for-timeout.
+    await this.page.waitForTimeout(700)
+    await this.page.mouse.up()
+    await expect(this.page.getByRole('button', { name: 'Select multiple' })).toBeVisible()
+  }
+
+  /** From the long-press sheet: enter select mode (the pressed row preselected). */
+  async enterSelectMode(): Promise<void> {
+    await this.page.getByRole('button', { name: 'Select multiple' }).click()
+  }
+
+  /** Select-mode header, e.g. "2 selected". */
+  selectionCount(count: number): Locator {
+    return this.page.getByRole('heading', { name: `${count} selected`, level: 1 })
+  }
+
+  /** In select mode: save the selected entries as a named meal. */
+  async saveSelectionAsMeal(mealName: string): Promise<void> {
+    await this.page.getByRole('button', { name: 'Save as meal' }).click()
+    await this.page.getByPlaceholder(/^Meal name/).fill(mealName)
+    const saveButton = this.page.getByRole('button', { name: 'Save meal' })
+    await saveButton.click()
+    // The sheet closes (and select mode exits) once the meal is stored.
+    await expect(saveButton).toBeHidden()
+    await this.expectLoaded()
+  }
 }

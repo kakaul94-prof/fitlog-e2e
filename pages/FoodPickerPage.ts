@@ -94,4 +94,24 @@ export class FoodPickerPage extends BasePage {
   async finish(): Promise<void> {
     await this.doneButton.click()
   }
+
+  /** A saved-meal row on the Meals tab — "{name} {n} items · {kcal} calories". */
+  savedMealRow(name: string) {
+    return this.page.getByRole('button', {
+      name: new RegExp(`^${escapeRegExp(name)} \\d+ items?`),
+    })
+  }
+
+  /** Switch to the saved-meals tab. */
+  async openMealsTab(): Promise<void> {
+    await this.page.getByRole('button', { name: 'meals', exact: true }).click()
+  }
+
+  /** With the Meals tab open: meal row → confirm sheet. */
+  async logSavedMeal(name: string, itemCount: number, meal: MealKey): Promise<void> {
+    await this.savedMealRow(name).click()
+    await this.page
+      .getByRole('button', { name: `Add ${itemCount} to ${meal}` })
+      .click()
+  }
 }

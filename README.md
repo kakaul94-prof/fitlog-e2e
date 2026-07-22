@@ -54,7 +54,11 @@ gitignored `.env`; in CI they are repository secrets. No secrets are ever commit
 | Strength (sets, est. 1RM, last-time prefill) | `tests/strength.spec.ts` | ✅ |
 | Body measurements → Progress history | `tests/measurements.spec.ts` | ✅ |
 | Streak indicator after logging today | with diary specs | ✅ |
-| Manual calorie goal → diary target | `tests/goals.spec.ts` | ✅ |
+| Diary entry editing (servings, meal) + delete | `tests/diary-entry.spec.ts` | ✅ |
+| Saved meals (multi-select → save → relog) | `tests/meals.spec.ts` | ✅ |
+| Manual calorie goal + eat-back exercise credit | `tests/goals.spec.ts` | ✅ |
+| Workout templates (targets persist, start workout) | `tests/routine.spec.ts` | ✅ |
+| Accessibility: axe scan, login + all tabs | `tests/a11y.spec.ts` | ✅ |
 | API: UI-insert → REST verify, RLS negative | `tests/api/diary.api.spec.ts` | ✅ |
 
 ## Design decisions
@@ -88,9 +92,13 @@ it would for an independent QA team.
 
 ## Future work
 
+- Upstream accessibility fixes in the app, then shrink the axe known-violations
+  allowlist to empty: the scan caught two real critical issues on Progress
+  (unlabeled weight input, unnamed type select) and app-wide muted-text color
+  contrast (rule disabled with a note until fixed).
 - `data-testid` / `role="alert"` hooks in the app for the few elements that lack
   accessible handles (login error paragraph, streak pill, icon-only "+" buttons,
   set-row inputs) — each workaround is annotated in the page objects.
-- Visual regression snapshots, accessibility scans (axe), API contract tests.
+- Visual regression snapshots, API contract tests.
 - Data-driven expansion: multiple meals/serving sizes per flow, macro-target
-  assertions, superset and routine flows in strength.
+  assertions, superset flows in strength.

@@ -5,7 +5,9 @@ import { FoodPickerPage } from '../pages/FoodPickerPage'
 import { FoodFormPage } from '../pages/FoodFormPage'
 import { LibraryPage } from '../pages/LibraryPage'
 import { RecipeEditPage } from '../pages/RecipeEditPage'
+import { DiaryEntryPage } from '../pages/DiaryEntryPage'
 import { ExerciseAddPage } from '../pages/ExerciseAddPage'
+import { RoutinePage } from '../pages/RoutinePage'
 import { StrengthPage } from '../pages/StrengthPage'
 import { WorkoutPage } from '../pages/WorkoutPage'
 import { ProgressPage } from '../pages/ProgressPage'
@@ -20,7 +22,9 @@ interface Fixtures {
   foodFormPage: FoodFormPage
   libraryPage: LibraryPage
   recipeEditPage: RecipeEditPage
+  diaryEntryPage: DiaryEntryPage
   exerciseAddPage: ExerciseAddPage
+  routinePage: RoutinePage
   strengthPage: StrengthPage
   workoutPage: WorkoutPage
   progressPage: ProgressPage
@@ -55,8 +59,14 @@ export const test = base.extend<Fixtures>({
   recipeEditPage: async ({ page }, use) => {
     await use(new RecipeEditPage(page))
   },
+  diaryEntryPage: async ({ page }, use) => {
+    await use(new DiaryEntryPage(page))
+  },
   exerciseAddPage: async ({ page }, use) => {
     await use(new ExerciseAddPage(page))
+  },
+  routinePage: async ({ page }, use) => {
+    await use(new RoutinePage(page))
   },
   strengthPage: async ({ page }, use) => {
     await use(new StrengthPage(page))

@@ -11,12 +11,13 @@ export interface SeedNutrients {
   fat?: number
 }
 
-/** The profile columns the goals spec captures and restores. */
+/** The profile columns the goals specs capture and restore. */
 export interface ProfileRow {
   id: string
   calorie_goal_mode: string | null
   manual_calorie_goal: number | null
   calorie_goal_history: unknown
+  eat_back_exercise: boolean | null
 }
 
 /** The diary_entries columns the API specs assert on. */
@@ -102,6 +103,40 @@ export class SupabaseApi {
     await this.delete('/rest/v1/exercise_entries', { name: `eq.${name}` })
   }
 
+  /** Insert a standalone diary entry (a snapshot row, like the app's quick add). */
+  async createDiaryEntry(input: {
+    date: string
+    meal: string
+    name: string
+    kcal: number
+    servings?: number
+  }): Promise<void> {
+    const res = await this.ctx.post('/rest/v1/diary_entries', {
+      data: {
+        entry_date: input.date,
+        meal: input.meal,
+        food_name: input.name,
+        servings: input.servings ?? 1,
+        nutrients: { kcal: input.kcal },
+      },
+    })
+    if (!res.ok()) {
+      throw new Error(
+        `createDiaryEntry(${input.name}) failed: ${res.status()} ${await res.text()}`,
+      )
+    }
+  }
+
+  /** Delete a saved meal by name (meal_items cascade). */
+  async deleteMealsByName(name: string): Promise<void> {
+    await this.delete('/rest/v1/meals', { name: `eq.${name}` })
+  }
+
+  /** Delete a workout template by name (routine_exercises cascade). */
+  async deleteRoutinesByName(name: string): Promise<void> {
+    await this.delete('/rest/v1/routines', { name: `eq.${name}` })
+  }
+
   async deleteMeasurements(type: string, value: number): Promise<void> {
     await this.delete('/rest/v1/measurements', {
       type: `eq.${type}`,
@@ -181,6 +216,8 @@ export class SupabaseApi {
     await this.delete('/rest/v1/foods', { source: 'eq.recipe', name: 'eq.New recipe' })
     await this.delete('/rest/v1/foods', { name: pattern })
     await this.delete('/rest/v1/exercise_entries', { name: pattern })
+    await this.delete('/rest/v1/meals', { name: pattern })
+    await this.delete('/rest/v1/routines', { name: pattern })
     // Strength: E2E custom exercises drag their workouts along.
     const customs = await this.getRows<{ name: string }>('/rest/v1/custom_exercises', {
       name: pattern,
