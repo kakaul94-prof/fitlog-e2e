@@ -70,6 +70,15 @@ export class FoodPickerPage extends BasePage {
 
   /** Multi-add bottom bar state after returning from "New food". */
   readonly pickedSummary = this.page.getByText(/foods? selected$/)
+  readonly multiAddToggle = this.page.getByRole('button', { name: 'Multi-add' })
+
+  /** In multi-add mode: search and toggle-select each food (picks persist). */
+  async multiSelect(names: string[]): Promise<void> {
+    for (const name of names) {
+      await this.searchInput.fill(name)
+      await this.foodRow(name).click()
+    }
+  }
 
   addPickedButton(count: number, meal: MealKey) {
     return this.page.getByRole('button', { name: `Add ${count} to ${meal}` })

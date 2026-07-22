@@ -63,4 +63,41 @@ test.describe('food diary', () => {
       await api.bestEffort(() => api.deleteDiaryEntriesByFoodName(entryName))
     }
   })
+
+  test('adds several foods at once with multi-add', async ({
+    diaryPage,
+    foodPickerPage,
+    api,
+  }) => {
+    const names = [uniqueName('Eggs'), uniqueName('Toast'), uniqueName('Juice')]
+    const kcals = [100, 200, 300]
+    const date = uniquePastDate()
+
+    for (let i = 0; i < names.length; i++) {
+      await api.createFood(names[i]!, { kcal: kcals[i]! })
+    }
+    try {
+      await diaryPage.gotoDate(date)
+      await diaryPage.openAddFood('Dinner')
+      await foodPickerPage.multiAddToggle.click()
+      await foodPickerPage.multiSelect(names)
+
+      await expect(foodPickerPage.pickedSummary).toHaveText('3 foods selected')
+      await foodPickerPage.addPickedButton(3, 'dinner').click()
+      await foodPickerPage.finish()
+
+      await diaryPage.expectLoaded()
+      for (let i = 0; i < names.length; i++) {
+        await expect(diaryPage.entryRow(names[i]!)).toContainText(`${kcals[i]} calories`)
+      }
+      await expect(diaryPage.mealHeader('Dinner')).toContainText('600 calories')
+    } finally {
+      await api.bestEffort(async () => {
+        for (const name of names) {
+          await api.deleteDiaryEntriesByFoodName(name)
+          await api.deleteFoodsByName(name)
+        }
+      })
+    }
+  })
 })

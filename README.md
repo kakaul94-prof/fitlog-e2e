@@ -47,11 +47,12 @@ gitignored `.env`; in CI they are repository secrets. No secrets are ever commit
 |---|---|---|
 | Authentication (positive + negative) | `tests/auth.spec.ts` | ✅ |
 | Navigation smoke (all tabs, no runtime errors) | `tests/navigation.spec.ts` | ✅ |
-| Food diary logging + day totals (incl. quick add) | `tests/diary.spec.ts` | ✅ |
+| Food diary logging + day totals (quick add, multi-add) | `tests/diary.spec.ts` | ✅ |
+| Diary move-to-meal + copy-to-day | `tests/diary-move-copy.spec.ts` | ✅ |
 | Food search, manual food + USDA import, serving rescale | `tests/food-search.spec.ts` | ✅ |
-| Recipes (ingredients → per-serving nutrition → log to diary) | `tests/recipe.spec.ts` | ✅ |
+| Recipes (per-serving nutrition, recompute on edit, log) | `tests/recipe.spec.ts` | ✅ |
 | Cardio (logged burn on the diary) | `tests/cardio.spec.ts` | ✅ |
-| Strength (sets, est. 1RM, last-time prefill) | `tests/strength.spec.ts` | ✅ |
+| Strength (sets, e1RM, prefill, supersets, records page) | `tests/strength.spec.ts` | ✅ |
 | Body measurements → Progress history | `tests/measurements.spec.ts` | ✅ |
 | Streak indicator after logging today | with diary specs | ✅ |
 | Diary entry editing (servings, meal) + delete | `tests/diary-entry.spec.ts` | ✅ |
@@ -101,4 +102,4 @@ it would for an independent QA team.
   set-row inputs) — each workaround is annotated in the page objects.
 - Visual regression snapshots, API contract tests.
 - Data-driven expansion: multiple meals/serving sizes per flow, macro-target
-  assertions, superset flows in strength.
+  assertions, strength goals + progression suggestions.

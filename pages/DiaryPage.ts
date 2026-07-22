@@ -111,6 +111,22 @@ export class DiaryPage extends BasePage {
     return this.page.getByRole('heading', { name: `${count} selected`, level: 1 })
   }
 
+  /** From the long-press sheet: move the entry to another meal. */
+  async moveEntryTo(meal: MealLabel): Promise<void> {
+    await this.page.getByRole('button', { name: 'Move to meal' }).click()
+    // exact — the diary's meal-card headers are named "{Meal} {kcal} calories".
+    await this.page.getByRole('button', { name: meal, exact: true }).click()
+  }
+
+  /** In select mode: copy the selected entries to a date (the app jumps there). */
+  async copySelectionToDay(date: string): Promise<void> {
+    await this.page.getByRole('button', { name: 'Copy to day' }).click()
+    await expect(this.page.getByText(/^Copy \d+ items? to another day$/)).toBeVisible()
+    // The sheet's date field; .last() skips the header's sr-only date input.
+    await this.page.locator('input[type="date"]').last().fill(date)
+    await this.page.getByRole('button', { name: 'Copy', exact: true }).click()
+  }
+
   /** In select mode: save the selected entries as a named meal. */
   async saveSelectionAsMeal(mealName: string): Promise<void> {
     await this.page.getByRole('button', { name: 'Save as meal' }).click()

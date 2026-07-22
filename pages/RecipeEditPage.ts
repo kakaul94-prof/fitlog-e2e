@@ -67,4 +67,11 @@ export class RecipeEditPage extends BasePage {
       level: 2,
     })
   }
+
+  /** Change an ingredient's amount (commits on blur; recomputes the recipe). */
+  async setIngredientAmount(foodName: string, amount: number): Promise<void> {
+    const amountInput = this.ingredientRow(foodName).locator('..').getByLabel('Amount')
+    await amountInput.fill(String(amount))
+    await amountInput.blur()
+  }
 }

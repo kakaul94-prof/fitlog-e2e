@@ -162,6 +162,26 @@ export class SupabaseApi {
     }
   }
 
+  /** A library food's stored per-serving calories (recipes included). */
+  async getFoodKcalByName(name: string): Promise<number | null> {
+    const rows = await this.getRows<{ nutrients: { kcal?: number } }>('/rest/v1/foods', {
+      name: `eq.${name}`,
+      select: 'nutrients',
+    })
+    return rows[0]?.nutrients.kcal ?? null
+  }
+
+  /** The app-side key (custom:<uuid>) for a custom exercise, by name. */
+  async getCustomExerciseKey(name: string): Promise<string> {
+    const rows = await this.getRows<{ id: string }>('/rest/v1/custom_exercises', {
+      name: `eq.${name}`,
+      select: 'id',
+    })
+    const row = rows[0]
+    if (!row) throw new Error(`getCustomExerciseKey: no custom exercise named ${name}`)
+    return `custom:${row.id}`
+  }
+
   /**
    * Remove a custom exercise and every workout that ever logged it (sets and
    * workout_exercises cascade from workouts). Tests use per-test custom

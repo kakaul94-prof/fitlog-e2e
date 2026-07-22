@@ -57,4 +57,25 @@ export class WorkoutPage extends BasePage {
       .click()
     await expect(this.exerciseTitle(name)).toBeVisible()
   }
+
+  // --- supersets ---
+  /** The standalone card's "Superset" link button (hidden for members). */
+  readonly supersetButton = this.page.getByRole('button', { name: 'Superset' })
+  /** The superset block's label (the button disappears once linked). */
+  readonly supersetBlockLabel = this.page.getByText('Superset', { exact: true })
+  /** The block's shared Done control (members hide their own timing rows). */
+  readonly blockDoneButton = this.page.getByRole('button', { name: 'Done', exact: true })
+  readonly completedSection = this.page.getByRole('button', { name: /^Completed \(\d+\)/ })
+
+  /** Link a new custom exercise as a superset partner of the current one. */
+  async addSupersetCustomExercise(name: string): Promise<void> {
+    await this.supersetButton.click()
+    await expect(
+      this.page.getByRole('heading', { name: 'Add superset exercise', level: 1 }),
+    ).toBeVisible()
+    await this.page.getByRole('button', { name: 'New custom exercise' }).click()
+    await this.page.getByLabel('Name', { exact: true }).fill(name)
+    await this.page.getByRole('button', { name: 'Add to workout' }).click()
+    await expect(this.exerciseTitle(name)).toBeVisible()
+  }
 }

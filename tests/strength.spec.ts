@@ -41,4 +41,82 @@ test.describe('strength', () => {
       await api.bestEffort(() => api.deleteStrengthDataForExercise(exerciseName))
     }
   })
+
+  test('links two exercises into a superset with shared timing', async ({
+    strengthPage,
+    workoutPage,
+    api,
+  }) => {
+    const first = uniqueName('Bench')
+    const second = uniqueName('Row')
+
+    try {
+      await strengthPage.goto()
+      await strengthPage.startEmptyWorkout()
+      await workoutPage.addCustomExercise(first)
+      await workoutPage.addSupersetCustomExercise(second)
+
+      // The linked block renders with a shared label and a single Done —
+      // member cards lose their own "Superset" buttons and timing rows.
+      await expect(workoutPage.supersetBlockLabel).toBeVisible()
+      await expect(workoutPage.supersetButton).toBeHidden()
+      await expect(workoutPage.setRows).toHaveCount(2)
+
+      // One set in each member: 100×5 → e1RM 117, 60×10 → e1RM 80.
+      await workoutPage.logSet(1, 100, 5)
+      await expect(workoutPage.e1rm(117)).toBeVisible()
+      await workoutPage.logSet(2, 60, 10)
+      await expect(workoutPage.e1rm(80)).toBeVisible()
+
+      // Block Done stamps every member; the whole block rolls into Completed.
+      await workoutPage.blockDoneButton.click()
+      await expect(workoutPage.completedSection).toContainText('Completed (1)')
+
+      await workoutPage.markDoneButton.click()
+      await expect(strengthPage.heading).toBeVisible()
+    } finally {
+      await api.bestEffort(async () => {
+        await api.deleteStrengthDataForExercise(first)
+        await api.deleteStrengthDataForExercise(second)
+      })
+    }
+  })
+
+  test('shows records and history on the exercise detail page', async ({
+    page,
+    strengthPage,
+    workoutPage,
+    api,
+  }) => {
+    const exerciseName = uniqueName('Curl')
+
+    try {
+      await strengthPage.goto()
+      await strengthPage.startEmptyWorkout()
+      await workoutPage.addCustomExercise(exerciseName)
+      await workoutPage.logSet(1, 100, 5)
+      await workoutPage.addSetButton.click()
+      await workoutPage.logSet(2, 105, 3)
+      await workoutPage.markDoneButton.click()
+      await expect(strengthPage.heading).toBeVisible()
+
+      // The detail page lives under the exercise's key.
+      const key = await api.getCustomExerciseKey(exerciseName)
+      await page.goto(`/lift/exercise/${key}`)
+      await expect(
+        page.getByRole('heading', { name: exerciseName, level: 1 }),
+      ).toBeVisible()
+
+      // Records derived from the logged sets: heaviest 105×3; best single-set
+      // volume 100×5 = 500 lb; session tonnage 500 + 315 = 815 lb.
+      await expect(page.getByText('Heaviest set')).toBeVisible()
+      // Appears in both the Records card and the session history row.
+      await expect(page.getByText('105 lb × 3').first()).toBeVisible()
+      // The record values embed their detail text (e.g. "500 lb 100 × 5").
+      await expect(page.getByText('500 lb')).toBeVisible()
+      await expect(page.getByText('815 lb')).toBeVisible()
+    } finally {
+      await api.bestEffort(() => api.deleteStrengthDataForExercise(exerciseName))
+    }
+  })
 })
