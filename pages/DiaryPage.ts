@@ -24,9 +24,22 @@ export class DiaryPage extends BasePage {
     await this.expectLoaded()
   }
 
-  /** A meal card's header button — its name reads "{Meal} {kcal} calories". */
+  /** A non-empty meal card's header button — reads "{Meal} {kcal} cal". */
   mealHeader(meal: MealLabel): Locator {
-    return this.page.getByRole('button', { name: new RegExp(`^${meal} \\d`) })
+    return this.page.getByRole('button', { name: new RegExp(`^${meal} \\d+ cal`) })
+  }
+
+  /**
+   * A meal header pinned to an exact subtotal. Asserted via the accessible
+   * name — the header's innerText concatenates without spaces.
+   */
+  mealHeaderKcal(meal: MealLabel, kcal: number): Locator {
+    return this.page.getByRole('button', { name: `${meal} ${kcal} cal` })
+  }
+
+  /** An empty meal's collapsed one-tap row — reads "{Meal} + Add". */
+  emptyMealRow(meal: MealLabel): Locator {
+    return this.page.getByRole('button', { name: `${meal} + Add` })
   }
 
   /** The whole meal card (header + entry rows + Add food). */
@@ -34,40 +47,81 @@ export class DiaryPage extends BasePage {
     return this.mealHeader(meal).locator('..')
   }
 
-  /** A logged entry row — accessible name is "{food name} {kcal} calories". */
+  /** A logged entry row — accessible name is "{food name} {kcal}". */
   entryRow(foodName: string): Locator {
     return this.page.getByRole('button', {
-      name: new RegExp(`^${escapeRegExp(foodName)} \\d+ calories`),
+      name: new RegExp(`^${escapeRegExp(foodName)} \\d+$`),
+    })
+  }
+
+  /** An entry row pinned to an exact calorie value. */
+  entryRowKcal(foodName: string, kcal: number): Locator {
+    return this.page.getByRole('button', {
+      name: new RegExp(`^${escapeRegExp(foodName)} ${kcal}$`),
     })
   }
 
   /**
-   * The day's consumed-calories total in the hero card. With a calorie goal
-   * configured it reads "− {kcal} food" (U+2212 or hyphen); on a profile
-   * without a goal the hero falls back to "{kcal} calories eaten".
+   * A hero stat row's label span, pinned to its exact value. The value and
+   * label are sibling spans separated only by CSS gap (their textContent has
+   * no space), so match the pair with an adjacent-sibling selector.
+   */
+  private statRow(value: string, label: string): Locator {
+    return this.page.locator(`span:text-is("${value}") + span:text-is("${label}")`)
+  }
+
+  /**
+   * The day's consumed-calories stat. With a goal configured the hero shows a
+   * "{kcal} food" stat row; without one it falls back to "{kcal} calories eaten".
    */
   foodTotal(kcal: number): Locator {
-    return this.page.getByText(new RegExp(`[−-] ${kcal} food|${kcal} calories eaten`))
+    return this.statRow(kcal.toLocaleString('en-US'), 'food').or(
+      this.page.getByText(`${kcal} calories eaten`),
+    )
   }
 
+  /** Open the picker for a meal — empty meals collapse to a "+ Add" row. */
   async openAddFood(meal: MealLabel): Promise<void> {
-    await this.mealCard(meal).getByRole('button', { name: 'Add food' }).click()
+    const emptyRow = this.emptyMealRow(meal)
+    const addButton = this.mealCard(meal).getByRole('button', { name: 'Add food' })
+    // Wait out the loading skeleton: exactly one of the two variants appears.
+    await expect(emptyRow.or(addButton)).toBeVisible()
+    if (await emptyRow.isVisible()) {
+      await emptyRow.click()
+      return
+    }
+    await addButton.click()
   }
 
-  /** A cardio row in the Exercise card — "{name} {min} min · {kcal} calories". */
+  /** A cardio row — "{name} {min} min … {kcal}" (bare trailing calories). */
   exerciseRow(name: string): Locator {
     return this.page.getByRole('button', {
       name: new RegExp(`^${escapeRegExp(name)} \\d+ min`),
     })
   }
 
-  async openAddExercise(): Promise<void> {
-    await this.page.getByRole('button', { name: 'Add exercise', exact: true }).click()
+  /** A cardio row pinned to an exact calorie value. */
+  exerciseRowKcal(name: string, kcal: number): Locator {
+    return this.page.getByRole('button', {
+      name: new RegExp(`^${escapeRegExp(name)} .*${kcal}$`),
+    })
   }
 
-  /** The hero card's "{kcal} goal" line (the day's calorie target). */
+  /** Open the cardio form — an empty Exercise card collapses to "+ Add". */
+  async openAddExercise(): Promise<void> {
+    const emptyRow = this.page.getByRole('button', { name: 'Exercise + Add' })
+    const addButton = this.page.getByRole('button', { name: 'Add exercise', exact: true })
+    await expect(emptyRow.or(addButton)).toBeVisible()
+    if (await emptyRow.isVisible()) {
+      await emptyRow.click()
+      return
+    }
+    await addButton.click()
+  }
+
+  /** The hero's "{kcal} goal" stat row (thousands get locale separators). */
   calorieGoal(kcal: number): Locator {
-    return this.page.getByText(`${kcal} goal`)
+    return this.statRow(kcal.toLocaleString('en-US'), 'goal')
   }
 
   /**
@@ -90,11 +144,9 @@ export class DiaryPage extends BasePage {
     return Number(await this.streakBadge.textContent())
   }
 
-  /** Open the day's full nutrient breakdown page. */
+  /** Open the day's full nutrient breakdown page (footer's labeled button). */
   async openNutrientBreakdown(): Promise<void> {
-    await this.page
-      .getByRole('button', { name: /View full nutrient breakdown/ })
-      .click()
+    await this.page.getByRole('button', { name: 'Day nutrients' }).click()
   }
 
   /** A macro bar's "{have}/{target}g" readout. */
@@ -106,9 +158,9 @@ export class DiaryPage extends BasePage {
     await this.page.reload()
   }
 
-  /** The hero's "+ {kcal} exercise" line (eat-back enabled + burn logged). */
+  /** The hero's "+{kcal} exercise" stat row (eat-back enabled + burn logged). */
   exerciseCredit(kcal: number): Locator {
-    return this.page.getByText(`+ ${kcal} exercise`)
+    return this.statRow(`+${kcal.toLocaleString('en-US')}`, 'exercise')
   }
 
   /** The calorie dial, addressable by its accessible remaining-calories name. */
@@ -144,7 +196,8 @@ export class DiaryPage extends BasePage {
   /** From the long-press sheet: move the entry to another meal. */
   async moveEntryTo(meal: MealLabel): Promise<void> {
     await this.page.getByRole('button', { name: 'Move to meal' }).click()
-    // exact — the diary's meal-card headers are named "{Meal} {kcal} calories".
+    // exact — meal-card headers ("{Meal} {kcal} cal") and empty rows
+    // ("{Meal} + Add") share the prefix.
     await this.page.getByRole('button', { name: meal, exact: true }).click()
   }
 

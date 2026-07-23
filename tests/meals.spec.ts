@@ -1,4 +1,4 @@
-import { test, expect } from '../fixtures/test-options'
+﻿import { test, expect } from '../fixtures/test-options'
 import { uniqueName, uniquePastDate } from '../utils/test-data'
 
 test.describe('saved meals', () => {
@@ -16,7 +16,7 @@ test.describe('saved meals', () => {
     await api.createDiaryEntry({ date: sourceDate, meal: 'breakfast', name: rice, kcal: 100 })
     await api.createDiaryEntry({ date: sourceDate, meal: 'breakfast', name: chicken, kcal: 300 })
     try {
-      // Long-press → select mode (pressed row preselected) → toggle the other.
+      // Long-press opens select mode (pressed row preselected); toggle the other.
       await diaryPage.gotoDate(sourceDate)
       await diaryPage.longPressEntry(rice)
       await diaryPage.enterSelectMode()
@@ -35,7 +35,7 @@ test.describe('saved meals', () => {
       await diaryPage.expectLoaded()
       await expect(diaryPage.entryRow(rice)).toBeVisible()
       await expect(diaryPage.entryRow(chicken)).toBeVisible()
-      await expect(diaryPage.mealHeader('Dinner')).toContainText('400 calories')
+      await expect(diaryPage.mealHeaderKcal('Dinner', 400)).toBeVisible()
     } finally {
       await api.bestEffort(async () => {
         await api.deleteDiaryEntriesByFoodName(rice)
@@ -45,3 +45,4 @@ test.describe('saved meals', () => {
     }
   })
 })
+

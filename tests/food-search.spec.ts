@@ -27,9 +27,7 @@ test.describe('food search and food form', () => {
       await foodPickerPage.addPickedButton(1, 'breakfast').click()
       await foodPickerPage.finish()
 
-      const entry = diaryPage.entryRow(foodName)
-      await expect(entry).toBeVisible()
-      await expect(entry).toContainText('100 calories')
+      await expect(diaryPage.entryRowKcal(foodName, 100)).toBeVisible()
 
       // Reopen the food and double the serving size — every nutrient rescales.
       await diaryPage.openAddFood('Breakfast')

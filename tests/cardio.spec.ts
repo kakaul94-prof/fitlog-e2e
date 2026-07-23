@@ -22,7 +22,7 @@ test.describe('cardio', () => {
       const row = diaryPage.exerciseRow(activityName)
       await expect(row).toBeVisible()
       await expect(row).toContainText(`${minutes} min`)
-      await expect(row).toContainText(`${calories} calories`)
+      await expect(diaryPage.exerciseRowKcal(activityName, calories)).toBeVisible()
     } finally {
       await api.bestEffort(() => api.deleteExerciseEntriesByName(activityName))
     }
@@ -51,7 +51,7 @@ test.describe('cardio', () => {
       await diaryPage.expectLoaded()
       const row = diaryPage.exerciseRow(activityName)
       await expect(row).toContainText('45 min')
-      await expect(row).toContainText('222 calories')
+      await expect(diaryPage.exerciseRowKcal(activityName, 222)).toBeVisible()
     } finally {
       await api.bestEffort(() => api.deleteExerciseEntriesByName(activityName))
     }
@@ -87,7 +87,7 @@ test.describe('cardio', () => {
       await diaryPage.expectLoaded()
       const row = diaryPage.exerciseRow(activityName)
       await expect(row).toBeVisible()
-      await expect(row).toContainText(`${expected} calories`)
+      await expect(diaryPage.exerciseRowKcal(activityName, expected)).toBeVisible()
     } finally {
       await api.bestEffort(async () => {
         await api.deleteExerciseEntriesByName(activityName)

@@ -66,8 +66,45 @@ export class FoodPickerPage extends BasePage {
 
   /** With the serving sheet open: set servings and log to the meal. */
   async logServings(meal: MealKey, servings: number): Promise<void> {
-    await this.servingsInput.fill(String(servings))
+    // Scoped .first(): tray rows behind the sheet also carry "Servings".
+    await this.servingsInput.first().fill(String(servings))
     await this.addToMealButton(meal).click()
+  }
+
+  /** The sheet's amount-unit dropdown (renders when a food has extra units). */
+  readonly servingUnitSelect = this.page.getByLabel('Serving unit')
+
+  /** With the sheet open: pick a unit (by id, e.g. 'g'), set the amount, log. */
+  async logAmountInUnit(meal: MealKey, unitId: string, amount: number): Promise<void> {
+    await this.servingUnitSelect.selectOption(unitId)
+    await this.servingsInput.first().fill(String(amount))
+    await this.addToMealButton(meal).click()
+  }
+
+  // --- the just-added tray (footer of the picker after logging) ---
+  /** The tray footer toggle — "{n} added · {kcal} cal". */
+  readonly trayToggle = this.page.getByRole('button', { name: /added · \d+ cal/ })
+
+  /** A tray row, scoped via its food-name text. */
+  private trayRow(name: string) {
+    return this.page.getByText(name, { exact: true }).locator('..').locator('..')
+  }
+
+  async openTray(): Promise<void> {
+    await this.trayToggle.click()
+  }
+
+  /** Edit a just-added entry's servings from its tray row (writes through). */
+  async setTrayServings(name: string, servings: number): Promise<void> {
+    // exact — "Decrease/Increase servings" buttons substring-match otherwise.
+    const input = this.trayRow(name).getByLabel('Servings', { exact: true })
+    await input.fill(String(servings))
+    await input.blur()
+  }
+
+  /** Remove a just-added entry from its tray row (deletes the diary row). */
+  async removeTrayEntry(name: string): Promise<void> {
+    await this.trayRow(name).getByRole('button', { name: 'Remove entry' }).click()
   }
 
   /** Multi-add bottom bar state after returning from "New food". */

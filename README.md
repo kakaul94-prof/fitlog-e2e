@@ -66,6 +66,8 @@ gitignored `.env`; in CI they are repository secrets. No secrets are ever commit
 | Accessibility: axe scan, login + all tabs | `tests/a11y.spec.ts` | ✅ |
 | API: UI-insert → REST verify, RLS negative, row contract | `tests/api/diary.api.spec.ts` | ✅ |
 | Backend-failure injection (USDA outage, transient 500 retry) | `tests/resilience.spec.ts` | ✅ |
+| Log by weight (serving-unit picker) + just-added tray | `tests/diary.spec.ts` | ✅ |
+| Reminders page (disabled web contract) | `tests/reminders.spec.ts` | ✅ |
 
 ## Design decisions
 

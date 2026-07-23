@@ -45,12 +45,8 @@ test.describe('recipes', () => {
       await foodPickerPage.finish()
 
       await diaryPage.expectLoaded()
-      const entry = diaryPage.entryRow(recipeName)
-      await expect(entry).toBeVisible()
-      await expect(entry).toContainText(`${perServingKcal} calories`)
-      await expect(diaryPage.mealHeader('Lunch')).toContainText(
-        `${perServingKcal} calories`,
-      )
+      await expect(diaryPage.entryRowKcal(recipeName, perServingKcal)).toBeVisible()
+      await expect(diaryPage.mealHeaderKcal('Lunch', perServingKcal)).toBeVisible()
     } finally {
       await api.bestEffort(async () => {
         await api.deleteDiaryEntriesByFoodName(recipeName)
@@ -102,7 +98,7 @@ test.describe('recipes', () => {
       await foodPickerPage.finish()
 
       await diaryPage.expectLoaded()
-      await expect(diaryPage.entryRow(recipeName)).toContainText('250 calories')
+      await expect(diaryPage.entryRowKcal(recipeName, 250)).toBeVisible()
     } finally {
       await api.bestEffort(async () => {
         await api.deleteDiaryEntriesByFoodName(recipeName)

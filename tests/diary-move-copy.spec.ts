@@ -1,4 +1,4 @@
-import { test, expect } from '../fixtures/test-options'
+﻿import { test, expect } from '../fixtures/test-options'
 import { addDaysISO, uniqueName, uniquePastDate } from '../utils/test-data'
 
 test.describe('diary move and copy', () => {
@@ -18,8 +18,8 @@ test.describe('diary move and copy', () => {
       await diaryPage.gotoDate(sourceDate)
       await diaryPage.longPressEntry(rice)
       await diaryPage.moveEntryTo('Lunch')
-      await expect(diaryPage.mealHeader('Lunch')).toContainText('100 calories')
-      await expect(diaryPage.mealHeader('Breakfast')).toContainText('300 calories')
+      await expect(diaryPage.mealHeaderKcal('Lunch', 100)).toBeVisible()
+      await expect(diaryPage.mealHeaderKcal('Breakfast', 300)).toBeVisible()
 
       // Copy both entries to another day; the app jumps to it.
       await diaryPage.longPressEntry(chicken)
@@ -32,8 +32,8 @@ test.describe('diary move and copy', () => {
       await expect(diaryPage.entryRow(rice)).toBeVisible()
       await expect(diaryPage.entryRow(chicken)).toBeVisible()
       // Copies land in their original meals on the target day.
-      await expect(diaryPage.mealHeader('Lunch')).toContainText('100 calories')
-      await expect(diaryPage.mealHeader('Breakfast')).toContainText('300 calories')
+      await expect(diaryPage.mealHeaderKcal('Lunch', 100)).toBeVisible()
+      await expect(diaryPage.mealHeaderKcal('Breakfast', 300)).toBeVisible()
     } finally {
       await api.bestEffort(async () => {
         await api.deleteDiaryEntriesByFoodName(rice)
@@ -89,7 +89,7 @@ test.describe('diary move and copy', () => {
       await diaryPage.deleteSelection()
       await expect(diaryPage.entryRow(first)).toBeHidden()
       await expect(diaryPage.entryRow(second)).toBeHidden()
-      await expect(diaryPage.mealHeader('Breakfast')).toContainText('0 calories')
+      await expect(diaryPage.emptyMealRow('Breakfast')).toBeVisible()
     } finally {
       await api.bestEffort(async () => {
         await api.deleteDiaryEntriesByFoodName(first)
@@ -119,7 +119,7 @@ test.describe('diary move and copy', () => {
       await diaryPage.expectLoaded()
       await expect(diaryPage.entryRow(eggs)).toBeVisible()
       await expect(diaryPage.entryRow(toast)).toBeVisible()
-      await expect(diaryPage.mealHeader('Breakfast')).toContainText('400 calories')
+      await expect(diaryPage.mealHeaderKcal('Breakfast', 400)).toBeVisible()
     } finally {
       await api.bestEffort(async () => {
         await api.deleteDiaryEntriesByFoodName(eggs)
@@ -128,3 +128,4 @@ test.describe('diary move and copy', () => {
     }
   })
 })
+

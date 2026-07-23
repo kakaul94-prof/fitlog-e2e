@@ -28,8 +28,8 @@ test.describe('diary entry editing', () => {
       await diaryEntryPage.setServingsAndSave(3) // saves and returns to the diary
 
       await diaryPage.expectLoaded()
-      await expect(diaryPage.entryRow(foodName)).toContainText('300 calories')
-      await expect(diaryPage.mealHeader('Lunch')).toContainText('300 calories')
+      await expect(diaryPage.entryRowKcal(foodName, 300)).toBeVisible()
+      await expect(diaryPage.mealHeaderKcal('Lunch', 300)).toBeVisible()
 
       // Reopen and delete — the row and its calories disappear.
       await diaryPage.entryRow(foodName).click()
@@ -37,7 +37,8 @@ test.describe('diary entry editing', () => {
       await diaryEntryPage.deleteEntry()
       await diaryPage.expectLoaded()
       await expect(diaryPage.entryRow(foodName)).toBeHidden()
-      await expect(diaryPage.mealHeader('Lunch')).toContainText('0 calories')
+      // An emptied meal collapses back to its one-tap "+ Add" row.
+      await expect(diaryPage.emptyMealRow('Lunch')).toBeVisible()
     } finally {
       await api.bestEffort(async () => {
         await api.deleteDiaryEntriesByFoodName(foodName)
