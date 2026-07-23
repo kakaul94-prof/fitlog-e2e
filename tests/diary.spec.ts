@@ -165,13 +165,9 @@ test.describe('food diary', () => {
     foodPickerPage,
     api,
   }) => {
-    // KNOWN APP BUG (offline mutation queue): the tray's servings-edit PATCH
-    // and removal DELETE dispatch unreliably — traces show runs where the
-    // PATCH never fires, or returns 204 without changing the row. Pinned as
-    // an expected failure; when the app fixes write-through, this test will
-    // "unexpectedly pass" and flag that the pin can be removed.
-    test.fail()
-
+    // Regression guard for FitLog e728170: the single-add path once
+    // regenerated the entry id in onMutate, so tray edits/removals PATCHed
+    // and DELETEd a row that didn't exist (204, zero rows matched).
     const kept = uniqueName('Oats')
     const removed = uniqueName('Syrup')
     const date = uniquePastDate()
