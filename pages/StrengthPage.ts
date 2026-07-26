@@ -12,26 +12,43 @@ export class StrengthPage extends BasePage {
   async startEmptyWorkout(): Promise<void> {
     await expect(this.heading).toBeVisible()
     await this.addButton.click()
-    await this.page.getByRole('button', { name: 'Empty workout' }).click()
+    // exact — the rotation hero's empty state offers "Start empty workout",
+    // which substring-matches otherwise.
+    await this.page.getByRole('button', { name: 'Empty workout', exact: true }).click()
     await expect(
       this.page.getByRole('heading', { name: 'Workout', level: 1 }),
     ).toBeVisible()
   }
 
-  /** "+" → "Template" → the template editor. */
-  async openNewTemplate(): Promise<void> {
-    await expect(this.heading).toBeVisible()
-    await this.addButton.click()
-    await this.page.getByRole('button', { name: 'Template', exact: true }).click()
+  /** The Templates hub page (templates moved off the main strength tab). */
+  private readonly templatesHeading = this.page.getByRole('heading', {
+    name: 'Templates',
+    level: 1,
+  })
+
+  /** Land on /lift/templates from wherever we are (no-op if already there). */
+  async gotoTemplates(): Promise<void> {
+    await expect(this.heading.or(this.templatesHeading)).toBeVisible()
+    if (await this.templatesHeading.isVisible()) return
+    await this.page.getByRole('button', { name: 'Templates', exact: true }).click()
+    await expect(this.templatesHeading).toBeVisible()
   }
 
-  /** Open a template's editor from the Templates list. */
+  /** Templates hub → "+" (aria "New template") → the template editor. */
+  async openNewTemplate(): Promise<void> {
+    await this.gotoTemplates()
+    await this.page.getByRole('button', { name: 'New template' }).click()
+  }
+
+  /** Open a template's editor from the Templates hub. */
   async openRoutine(name: string): Promise<void> {
+    await this.gotoTemplates()
     await this.page.getByRole('link', { name, exact: true }).click()
   }
 
-  /** Start a workout from a template row in the Templates list. */
+  /** Start a workout from a template row on the Templates hub. */
   async startRoutine(name: string): Promise<void> {
+    await this.gotoTemplates()
     await this.page
       .getByRole('link', { name, exact: true })
       .locator('..')

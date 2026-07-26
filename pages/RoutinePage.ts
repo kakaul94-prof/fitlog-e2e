@@ -12,7 +12,9 @@ export class RoutinePage extends BasePage {
   readonly editHeading = this.page.getByRole('heading', { name: 'Edit template', level: 1 })
   // Label isn't associated with the input — target the adjacent element.
   readonly nameInput = this.page.locator('label:text-is("Template name") + input')
-  readonly addExerciseButton = this.page.getByRole('button', { name: 'Add exercise' })
+  // The add row is split into "Exercise" and "Cardio" buttons (exact — the
+  // bottom nav's Exercise tab is a link, but stay strict anyway).
+  readonly addExerciseButton = this.page.getByRole('button', { name: 'Exercise', exact: true })
   readonly targetSetsInput = this.page.getByPlaceholder('sets')
   readonly targetRepsInput = this.page.getByPlaceholder('reps')
   readonly saveButton = this.page.getByRole('button', { name: 'Save template' })
