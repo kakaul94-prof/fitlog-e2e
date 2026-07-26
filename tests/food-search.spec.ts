@@ -68,6 +68,17 @@ test.describe('food search and food form', () => {
       await foodPickerPage.searchUsdaButton.click()
       await foodPickerPage.usdaResults.first().click()
 
+      // USDA's search index sometimes lists ids whose detail endpoint 404s
+      // (data-release skew); the app then shows an inline error. Do what a
+      // user would: fall back to the next result once.
+      await expect(
+        foodPickerPage.servingsInput.first().or(foodPickerPage.errorText.first()),
+      ).toBeVisible()
+      // eslint-disable-next-line playwright/no-conditional-in-test -- deliberate fallback for upstream data skew
+      if (await foodPickerPage.errorText.first().isVisible()) {
+        await foodPickerPage.usdaResults.nth(1).click()
+      }
+
       // Import lands in the serving sheet; open the full form to inspect it.
       await expect(foodPickerPage.servingsInput).toBeVisible()
       await foodPickerPage.editFoodDetailsButton.click()
