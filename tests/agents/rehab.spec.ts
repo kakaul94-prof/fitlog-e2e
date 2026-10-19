@@ -53,6 +53,9 @@ test.describe('rehab centre', () => {
     await injuryPage.painButton(3).click()
     // One rating for today, not two: with two the hint turns into a chart.
     await expect(page.getByText(/^Rated 3\/10 once\./)).toBeVisible()
+    // The selected rating is exposed to assistive tech, not just by colour.
+    await expect(injuryPage.painButton(3)).toHaveAttribute('aria-pressed', 'true')
+    await expect(injuryPage.painButton(7)).toHaveAttribute('aria-pressed', 'false')
     await expect
       .poll(async () =>
         (await api.getRehab()).checkins.filter((c) => c.injuryId === id).map((c) => c.pain),
@@ -110,8 +113,7 @@ test.describe('rehab centre', () => {
     await expect(injuryPage.painWidget).toBeVisible()
 
     await injuryPage.markResolvedButton.click()
-    // "ran 1 days" is a FitLog plural bug, pinned in its own test below.
-    await expect(injuryPage.statusLine).toHaveText(/^Closed Today · ran 1 days?$/)
+    await expect(injuryPage.statusLine).toHaveText('Closed Today · ran 1 day')
     await expect(injuryPage.painWidget).toHaveCount(0)
     await expect(injuryPage.reopenButton).toBeVisible()
     await expect(injuryPage.markResolvedButton).toHaveCount(0)
@@ -149,15 +151,47 @@ test.describe('rehab centre', () => {
     await expect(injuryPage.notFound).toBeVisible()
   })
 
-  // Added in review, not generated. FitLog doesn't pluralise the resolved
-  // subtitle ("Closed Today · ran 1 days"). Expected to fail until fixed
-  // upstream, then it reports "unexpectedly passed" and the pin comes off.
+  // Added in review, not generated. Regression guard for the "ran 1 days"
+  // plural bug this suite found (fixed in FitLog#21).
   test('a one-day injury reads "ran 1 day" once resolved', async ({ rehabPage, injuryPage }) => {
-    test.fail()
     await rehabPage.logInjury()
     await injuryPage.expectLoaded('Left shoulder')
     await injuryPage.markResolvedButton.click()
     await expect(injuryPage.reopenButton).toBeVisible()
-    await expect(injuryPage.statusLine).toHaveText('Closed Today · ran 1 day', { timeout: 3_000 })
+    await expect(injuryPage.statusLine).toHaveText('Closed Today · ran 1 day')
+  })
+
+  // Added after FitLog#21 shipped the target stepper (not generated).
+  test("sets an exercise's weekly target with the stepper", async ({
+    rehabPage,
+    injuryPage,
+    api,
+  }) => {
+    const exercise = 'Banded external rotation'
+    const storedTarget = async (id: string) =>
+      (await api.getRehab()).injuries.find((i) => i.id === id)?.plan[0]?.targetPerWeek
+
+    await rehabPage.logInjury()
+    const id = await injuryPage.expectLoaded('Left shoulder')
+    await injuryPage.addLibraryExercise(exercise)
+    await expect(injuryPage.targetChip(exercise)).toHaveText('0 / 3')
+
+    await injuryPage.targetChip(exercise).click()
+    await expect(injuryPage.targetChip(exercise)).toHaveAttribute('aria-expanded', 'true')
+    await injuryPage.moreSessionsButton.click()
+    await expect(injuryPage.targetChip(exercise)).toHaveText('0 / 4')
+    await expect.poll(() => storedTarget(id)).toBe(4)
+
+    // Down to 0 = no target: the row just tracks sessions, and can't go lower.
+    for (const shown of ['0 / 3', '0 / 2', '0 / 1', '0 / —']) {
+      await injuryPage.fewerSessionsButton.click()
+      await expect(injuryPage.targetChip(exercise)).toHaveText(shown)
+    }
+    await expect(injuryPage.fewerSessionsButton).toBeDisabled()
+    await expect.poll(() => storedTarget(id)).toBe(0)
+
+    // With no target the row just counts sessions.
+    await injuryPage.doneTodayButton.click()
+    await expect(injuryPage.targetChip(exercise)).toHaveText('1 / —')
   })
 })

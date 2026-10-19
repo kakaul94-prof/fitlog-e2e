@@ -29,6 +29,16 @@ export class InjuryPage extends BasePage {
     return this.page.getByRole('button', { name: `Pain ${n} of 10`, exact: true })
   }
 
+  /** A plan row's "done / target" chip; tapping it opens the target stepper. */
+  targetChip(exercise: string): Locator {
+    return this.page.getByRole('button', {
+      name: new RegExp(`^Edit weekly target for ${escapeRegExp(exercise)} \\(`),
+    })
+  }
+
+  readonly moreSessionsButton = this.page.getByRole('button', { name: 'More sessions a week' })
+  readonly fewerSessionsButton = this.page.getByRole('button', { name: 'Fewer sessions a week' })
+
   /** Wait for the injury's page and return its id (from /rehab/:id). */
   async expectLoaded(name: string): Promise<string> {
     await expect(this.heading(name)).toBeVisible()

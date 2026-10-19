@@ -50,6 +50,7 @@ export interface RehabState {
     started: string
     status: 'active' | 'resolved'
     resolved?: string | null
+    plan: { id: string; name: string; targetPerWeek: number }[]
   }[]
   log: { injuryId: string; itemId: string; date: string }[]
   checkins: { injuryId: string; date: string; pain: number }[]
