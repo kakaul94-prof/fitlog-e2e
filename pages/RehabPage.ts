@@ -20,9 +20,10 @@ export class RehabPage extends BasePage {
   readonly emptyState = this.page.getByText(/^Nothing in rehab\./)
   readonly resolvedHeading = this.page.getByRole('heading', { name: 'Resolved', level: 2 })
   readonly logInjuryButton = this.page.getByRole('button', { name: 'Log an injury' })
-  // The form's fields have no <label> (FitLog a11y gap): the note is named only
-  // by its placeholder, and the start date is the page's one date input.
-  readonly noteInput = this.page.getByRole('textbox', { name: 'Aches on overhead press' })
+  // FitLog#21 gives these fields real labels. Until it ships to dev, the note
+  // is named only by its placeholder (stable either way) and the start date is
+  // the page's one date input. Switch both to getByLabel once it's live.
+  readonly noteInput = this.page.getByPlaceholder('Aches on overhead press')
   readonly startedInput = this.page.locator('input[type="date"]')
   readonly startTrackingButton = this.page.getByRole('button', { name: 'Start tracking' })
 
