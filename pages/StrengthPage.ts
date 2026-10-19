@@ -1,5 +1,6 @@
 import { expect } from '@playwright/test'
 import { BasePage } from './BasePage'
+import { CheckinSheet } from './components/CheckinSheet'
 
 /** The Exercise tab (/strength): workout history + the start-workout menu. */
 export class StrengthPage extends BasePage {
@@ -7,17 +8,16 @@ export class StrengthPage extends BasePage {
 
   readonly heading = this.page.getByRole('heading', { name: 'Exercise', level: 1 })
   readonly addButton = this.page.getByRole('button', { name: 'Add', exact: true })
+  readonly checkin = new CheckinSheet(this.page)
 
-  /** "+" → "Empty workout" → lands on the new workout's page. */
+  /** "+" → "Empty workout" → (check-in) → the new workout's page. */
   async startEmptyWorkout(): Promise<void> {
     await expect(this.heading).toBeVisible()
     await this.addButton.click()
     // exact — the rotation hero's empty state offers "Start empty workout",
     // which substring-matches otherwise.
     await this.page.getByRole('button', { name: 'Empty workout', exact: true }).click()
-    await expect(
-      this.page.getByRole('heading', { name: 'Workout', level: 1 }),
-    ).toBeVisible()
+    await this.checkin.skipIfShown(this.page.getByRole('heading', { name: 'Workout', level: 1 }))
   }
 
   /** The Templates hub page (templates moved off the main strength tab). */
@@ -55,6 +55,6 @@ export class StrengthPage extends BasePage {
       .getByRole('button', { name: 'Start' })
       .click()
     // The workout inherits the routine's name as its title.
-    await expect(this.page.getByRole('heading', { name, level: 1 })).toBeVisible()
+    await this.checkin.skipIfShown(this.page.getByRole('heading', { name, level: 1 }))
   }
 }

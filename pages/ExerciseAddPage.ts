@@ -1,10 +1,12 @@
 import { expect } from '@playwright/test'
 import { BasePage } from './BasePage'
+import { escapeRegExp } from '../utils/test-data'
 
 /**
- * The cardio entry form (/exercise/add, /exercise/edit/:id) — redesigned
- * around a live calorie summary: name, calories, and duration are tap-to-edit
- * (the duration tile starts open on new entries, closed when editing).
+ * The cardio entry form (/exercise/add, /exercise/edit/:id) — a live calorie
+ * summary: name, calories, and duration are tap-to-edit (the duration tile
+ * starts open on new entries, closed when editing). New entries open on the
+ * activity picker; the name row only appears once an activity is chosen.
  */
 export class ExerciseAddPage extends BasePage {
   protected readonly path = '/exercise/add'
@@ -13,6 +15,7 @@ export class ExerciseAddPage extends BasePage {
   readonly editHeading = this.page.getByRole('heading', { name: 'Edit exercise', level: 1 })
   readonly saveButton = this.page.getByRole('button', { name: 'Add exercise', exact: true })
   readonly saveChangesButton = this.page.getByRole('button', { name: 'Save changes' })
+  readonly activitySearch = this.page.getByPlaceholder('Search activities (e.g. mowing)')
 
   /** The activity/name row — reads "{name} · {met} MET"; tap to rename. */
   readonly nameButton = this.page.getByRole('button', { name: /MET$/ })
@@ -46,9 +49,35 @@ export class ExerciseAddPage extends BasePage {
     await this.caloriesInput.blur()
   }
 
-  /** Log a cardio session under a free-typed name with exact calories. */
+  /** Open the activity picker (new entries start with it open). */
+  async openPicker(): Promise<void> {
+    await expect(this.activitySearch.or(this.nameButton)).toBeVisible()
+    if (!(await this.activitySearch.isVisible())) {
+      await this.page.getByRole('button', { name: 'Change', exact: true }).click()
+    }
+  }
+
+  /**
+   * Pick a built-in activity through search. Searching skips the picker's
+   * Recent list, whose rows prefill from (or one-tap re-log) old entries.
+   */
+  async pickActivity(name: string): Promise<void> {
+    await this.openPicker()
+    await this.activitySearch.fill(name)
+    // Rows read "{name} ~{n} cal / 30 min" (or "{name} {met} MET" with no weight).
+    await this.page
+      .getByRole('button', { name: new RegExp(`^${escapeRegExp(name)} ~?\\d`) })
+      .click()
+    await expect(this.nameButton).toContainText(name)
+  }
+
+  /**
+   * Log a cardio session under a free-typed name with exact calories: pick a
+   * stand-in activity, rename it, override the calories (so MET is moot).
+   */
   async logCardio(name: string, minutes: number, calories: number): Promise<void> {
     await expect(this.heading).toBeVisible()
+    await this.pickActivity('Yoga')
     await this.setName(name)
     await this.setDuration(minutes)
     await this.setCaloriesOverride(calories)
@@ -56,12 +85,12 @@ export class ExerciseAddPage extends BasePage {
   }
 
   /**
-   * Create and pick a custom activity (name + MET) via the "Change" flow.
+   * Create and pick a custom activity (name + MET) from the picker.
    * The inline form has its own "Name" field, scoped through its card.
    */
   async createCustomActivity(name: string, met: number): Promise<void> {
-    await this.page.getByRole('button', { name: 'Change', exact: true }).click()
-    await this.page.getByRole('button', { name: 'New custom activity' }).click()
+    await this.openPicker()
+    await this.page.getByRole('button', { name: 'New custom activity', exact: true }).click()
     const card = this.page.getByText('New custom activity', { exact: true }).locator('..')
     await card.getByLabel('Name', { exact: true }).fill(name)
     await card.getByLabel('Intensity (MET)').fill(String(met))

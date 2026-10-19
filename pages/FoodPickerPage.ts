@@ -170,14 +170,15 @@ export class FoodPickerPage extends BasePage {
   }
 
   /**
-   * "Copy day": pull the previous day's entries for this meal into the
+   * "Copy meal": pull the previous day's entries for this meal into the
    * current day (the sheet defaults its source date to yesterday).
    */
   async copyPreviousDay(expectedCount: number): Promise<void> {
-    await this.page.getByRole('button', { name: 'Copy day' }).click()
+    await this.page.getByRole('button', { name: 'Copy meal', exact: true }).click()
     await this.page
       .getByRole('button', {
-        name: new RegExp(`^Copy ${expectedCount} items?$`),
+        // Reads e.g. "Copy 2 items · 400 cal" (the total is checked on the diary).
+        name: new RegExp(`^Copy ${expectedCount} items? · \\d+ cal$`),
       })
       .click()
   }
