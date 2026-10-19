@@ -305,6 +305,18 @@ export class SupabaseApi {
     }
   }
 
+  /** Blank the Rehab centre — its whole state is the `profiles.rehab` jsonb. */
+  async resetRehab(): Promise<void> {
+    const { id } = await this.getProfile()
+    const res = await this.ctx.patch('/rest/v1/profiles', {
+      params: { id: `eq.${id}` },
+      data: { rehab: {} },
+    })
+    if (!res.ok()) {
+      throw new Error(`resetRehab failed: ${res.status()} ${await res.text()}`)
+    }
+  }
+
   /** A library food's stored per-serving calories (recipes included). */
   async getFoodKcalByName(name: string): Promise<number | null> {
     const rows = await this.getRows<{ nutrients: { kcal?: number } }>('/rest/v1/foods', {
