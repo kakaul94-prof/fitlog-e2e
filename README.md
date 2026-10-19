@@ -41,6 +41,50 @@ Environment variables (see `.env.example`): `BASE_URL`, `E2E_EMAIL`, `E2E_PASSWO
 plus `SUPABASE_URL` / `SUPABASE_ANON_KEY` for the API specs. Locally they come from a
 gitignored `.env`; in CI they are repository secrets. No secrets are ever committed.
 
+## AI test agents (Playwright planner / generator / healer)
+
+Playwright ships three Claude Code subagents plus an MCP server that lets them drive a
+real browser through the test runner. They are set up here as an experiment. Anything
+they write stays quarantined until a human reviews it.
+
+**Setup (Playwright 1.61.1, Claude Code CLI)**
+
+1. `npx playwright init-agents --loop=claude --project=chromium`. This writes
+   `.claude/agents/playwright-test-{planner,generator,healer}.md`, `.mcp.json` (the
+   `playwright-test` server, i.e. `npx playwright run-test-mcp-server`, which ships inside
+   `@playwright/test` with nothing extra to install), a seed test and `specs/` for plans.
+2. The generated seed moved to `tests/agents/seed.spec.ts` and now uses the suite's own
+   fixtures (`fixtures/test-options`). The agents get the same signed-in per-worker
+   account and REST client as a hand-written spec, and each session starts from a known
+   state (`api.resetRehab()` for the Rehab area. Change it when you target another area).
+3. Agent specs live in `tests/agents/` and run only in the opt-in `agents` project
+   (desktop Chrome). The project exists only when `PW_AGENTS=1` is set, and `.mcp.json`
+   sets that for the MCP server. The normal matrix and CI never see these specs.
+4. `.mcp.json` is the Windows form (`cmd /c npx …`) as generated. On macOS/Linux use
+   `"command": "npx", "args": ["playwright", "run-test-mcp-server"]`. The server opens
+   a headed browser by default. Add `--headless` to its args for unattended runs.
+5. Claude Code must be logged in (`claude`, then `/login`).
+
+**Running them**
+
+- Interactive: open Claude Code in the repo root, approve the `playwright-test` MCP
+  server, then ask e.g. *"Use the playwright-test-planner agent to plan the Rehab centre.
+  Seed: tests/agents/seed.spec.ts (project: agents). Save as specs/rehab.plan.md."*
+- Headless (how the runs in this repo were made):
+
+  ```sh
+  claude -p "Use the playwright-test-planner agent to …" \
+    --mcp-config .mcp.json --strict-mcp-config \
+    --allowedTools mcp__playwright-test Read Glob Grep LS Agent \
+    --output-format stream-json --verbose
+  ```
+
+  The healer also needs `Edit Write MultiEdit` in `--allowedTools`. If browsers are
+  cached outside the default location, set `PLAYWRIGHT_BROWSERS_PATH`.
+- Run the reviewed agent specs: `PW_AGENTS=1 npx playwright test --project=agents`.
+
+Plans land in `specs/`. MCP snapshots land in `.playwright-mcp/` (gitignored).
+
 ## Coverage
 
 | Area | Spec | Status |
@@ -68,6 +112,7 @@ gitignored `.env`; in CI they are repository secrets. No secrets are ever commit
 | Backend-failure injection (USDA outage, transient 500 retry) | `tests/resilience.spec.ts` | ✅ |
 | Log by weight (serving-unit picker) + just-added tray | `tests/diary.spec.ts` | ✅ |
 | Reminders page (disabled web contract) | `tests/reminders.spec.ts` | ✅ |
+| Rehab centre: create, pain re-rate, sessions, resolve/reopen, delete (agent-generated, reviewed; opt-in `agents` project) | `tests/agents/rehab.spec.ts` | 🧪 |
 
 ## Design decisions
 

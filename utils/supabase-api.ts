@@ -40,6 +40,22 @@ export interface ProfileRow {
   macro_targets: unknown
 }
 
+/** The slice of `profiles.rehab` the Rehab specs assert on. */
+export interface RehabState {
+  injuries: {
+    id: string
+    site: string
+    side: string | null
+    note?: string | null
+    started: string
+    status: 'active' | 'resolved'
+    resolved?: string | null
+    plan: { id: string; name: string; targetPerWeek: number }[]
+  }[]
+  log: { injuryId: string; itemId: string; date: string }[]
+  checkins: { injuryId: string; date: string; pain: number }[]
+}
+
 /** The diary_entries columns the API specs assert on. */
 export interface DiaryEntryRow {
   id: string
@@ -302,6 +318,27 @@ export class SupabaseApi {
     })
     if (!res.ok()) {
       throw new Error(`updateProfile failed: ${res.status()} ${await res.text()}`)
+    }
+  }
+
+  /** The stored Rehab centre state, with the app's empty-state defaults. */
+  async getRehab(): Promise<RehabState> {
+    const rows = await this.getRows<{ rehab: Partial<RehabState> | null }>('/rest/v1/profiles', {
+      select: 'rehab',
+    })
+    const rehab = rows[0]?.rehab ?? {}
+    return { injuries: [], log: [], checkins: [], ...rehab }
+  }
+
+  /** Blank the Rehab centre — its whole state is the `profiles.rehab` jsonb. */
+  async resetRehab(): Promise<void> {
+    const { id } = await this.getProfile()
+    const res = await this.ctx.patch('/rest/v1/profiles', {
+      params: { id: `eq.${id}` },
+      data: { rehab: {} },
+    })
+    if (!res.ok()) {
+      throw new Error(`resetRehab failed: ${res.status()} ${await res.text()}`)
     }
   }
 

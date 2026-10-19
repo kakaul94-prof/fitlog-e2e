@@ -10,6 +10,15 @@ export const STORAGE_STATE = path.join(__dirname, '.auth', 'user.json')
 
 const baseURL = process.env.BASE_URL ?? 'https://fitlog-9wl.pages.dev'
 
+/**
+ * Playwright test agents (planner / generator / healer, see README). Their
+ * seed and the specs they generate live in tests/agents/ and stay out of the
+ * main suite until reviewed: the project exists only when PW_AGENTS is set,
+ * which .mcp.json does for the agents' MCP server.
+ */
+const AGENT_SPECS = /[\\/]agents[\\/]/
+const agentsEnabled = !!process.env.PW_AGENTS
+
 export default defineConfig({
   testDir: './tests',
   fullyParallel: true,
@@ -37,34 +46,50 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'], storageState: STORAGE_STATE },
       dependencies: ['setup'],
-      testIgnore: /signout\.spec\.ts/,
+      testIgnore: [/signout\.spec\.ts/, AGENT_SPECS],
     },
     {
       name: 'firefox',
       use: { ...devices['Desktop Firefox'], storageState: STORAGE_STATE },
       dependencies: ['setup'],
-      testIgnore: /signout\.spec\.ts/,
+      testIgnore: [/signout\.spec\.ts/, AGENT_SPECS],
     },
     {
       name: 'webkit',
       use: { ...devices['Desktop Safari'], storageState: STORAGE_STATE },
       dependencies: ['setup'],
-      testIgnore: /signout\.spec\.ts/,
+      testIgnore: [/signout\.spec\.ts/, AGENT_SPECS],
     },
     {
       // FitLog is phone-first — run the suite in a real mobile viewport too.
       name: 'mobile-chrome',
       use: { ...devices['Pixel 7'], storageState: STORAGE_STATE },
       dependencies: ['setup'],
-      testIgnore: /signout\.spec\.ts/,
+      testIgnore: [/signout\.spec\.ts/, AGENT_SPECS],
     },
+    ...(agentsEnabled
+      ? [
+          {
+            name: 'agents',
+            testMatch: AGENT_SPECS,
+            use: { ...devices['Desktop Chrome'], storageState: STORAGE_STATE },
+            dependencies: ['setup'],
+          },
+        ]
+      : []),
     {
       // Signing out revokes every session for the shared account, so this
       // runs strictly after all browser projects have finished.
       name: 'signout',
       testMatch: /signout\.spec\.ts/,
       use: { ...devices['Desktop Chrome'] },
-      dependencies: ['chromium', 'firefox', 'webkit', 'mobile-chrome'],
+      dependencies: [
+        'chromium',
+        'firefox',
+        'webkit',
+        'mobile-chrome',
+        ...(agentsEnabled ? ['agents'] : []),
+      ],
     },
   ],
 })

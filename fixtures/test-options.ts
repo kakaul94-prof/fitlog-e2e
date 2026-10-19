@@ -15,6 +15,8 @@ import { StrengthPage } from '../pages/StrengthPage'
 import { WorkoutPage } from '../pages/WorkoutPage'
 import { ProgressPage } from '../pages/ProgressPage'
 import { ProfilePage } from '../pages/ProfilePage'
+import { RehabPage } from '../pages/RehabPage'
+import { InjuryPage } from '../pages/InjuryPage'
 import { BottomNav } from '../pages/components/BottomNav'
 import { SupabaseApi } from '../utils/supabase-api'
 
@@ -32,6 +34,8 @@ interface Fixtures {
   workoutPage: WorkoutPage
   progressPage: ProgressPage
   profilePage: ProfilePage
+  rehabPage: RehabPage
+  injuryPage: InjuryPage
   bottomNav: BottomNav
   api: SupabaseApi
 }
@@ -111,6 +115,12 @@ export const test = base.extend<Fixtures, WorkerFixtures>({
   },
   profilePage: async ({ page }, use) => {
     await use(new ProfilePage(page))
+  },
+  rehabPage: async ({ page }, use) => {
+    await use(new RehabPage(page))
+  },
+  injuryPage: async ({ page }, use) => {
+    await use(new InjuryPage(page))
   },
   bottomNav: async ({ page }, use) => {
     await use(new BottomNav(page))
