@@ -106,7 +106,7 @@ test.describe('diary move and copy', () => {
     const eggs = uniqueName('Eggs')
     const toast = uniqueName('Toast')
     const sourceDate = uniquePastDate()
-    // The picker's "Copy day" sheet defaults its source to the previous day.
+    // The picker's "Copy meal" sheet defaults its source to the previous day.
     const targetDate = addDaysISO(sourceDate, 1)
 
     await api.createDiaryEntry({ date: sourceDate, meal: 'breakfast', name: eggs, kcal: 150 })

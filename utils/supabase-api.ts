@@ -466,6 +466,10 @@ export class SupabaseApi {
     await this.delete('/rest/v1/meals', { name: pattern })
     await this.delete('/rest/v1/routines', { name: pattern })
     await this.delete('/rest/v1/custom_activities', { name: pattern })
+    // cardio.spec pins "latest weight" with a 2099-01-01 weigh-in. A timed-out
+    // test loses its own cleanup, and leftovers crowd the 10-row Progress
+    // history that measurements.spec reads.
+    await this.delete('/rest/v1/measurements', { measured_on: 'eq.2099-01-01' })
     // Strength: E2E custom exercises drag their workouts along.
     const customs = await this.getRows<{ name: string }>('/rest/v1/custom_exercises', {
       name: pattern,
