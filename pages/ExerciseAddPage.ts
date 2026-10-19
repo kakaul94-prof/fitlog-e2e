@@ -18,7 +18,8 @@ export class ExerciseAddPage extends BasePage {
   readonly activitySearch = this.page.getByPlaceholder('Search activities (e.g. mowing)')
 
   /** The activity/name row — reads "{name} · {met} MET"; tap to rename. */
-  readonly nameButton = this.page.getByRole('button', { name: /MET$/ })
+  // Anchored on " · ": picker rows also end in "MET" when no weight is logged.
+  readonly nameButton = this.page.getByRole('button', { name: / · [\d.]+ MET$/ })
   readonly nameInput = this.page.getByLabel('Exercise name')
   /** The big calorie number — reads "{n} cal"; tap to type an override. */
   readonly caloriesButton = this.page.getByRole('button', { name: /^\d+ cal$/ })
